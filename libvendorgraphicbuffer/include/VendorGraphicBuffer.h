@@ -70,13 +70,27 @@ public:
 		PRIV_FLAGS_USES_3PRIVATE_DATA = 1U << 5,
 	};
 
-	int fd  = -1;
-	int fd1 = -1;
-	int fd2 = -1;
+	union {
+		int fds[3];
 
-	int size  = 0;
-	int size1 = 0;
-	int size2 = 0;
+		struct {
+			int fd  = -1;
+			int fd1 = -1;
+			int fd2 = -1;
+		};
+	};
+
+	union {
+		int sizes[3];
+
+		struct {
+			int size  = 0;
+			int size1 = 0;
+			int size2 = 0;
+		};
+	};
+
+	uint32_t offsets[3];
 
 	union
 	{

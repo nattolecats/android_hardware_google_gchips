@@ -198,6 +198,10 @@ void VendorGraphicBufferMeta::init(const buffer_handle_t handle)
 	size1  = gralloc_hnd->alloc_sizes[1];
 	size2  = gralloc_hnd->alloc_sizes[2];
 
+	offsets[0] = gralloc_hnd->plane_info[0].offset;
+	offsets[1] = gralloc_hnd->plane_info[1].offset;
+	offsets[2] = gralloc_hnd->plane_info[2].offset;
+
 	uint64_t usage = gralloc_hnd->producer_usage | gralloc_hnd->consumer_usage;
 	if (usage & VendorGraphicBufferUsage::VIDEO_PRIVATE_DATA) {
 		switch (gralloc_hnd->get_share_attr_fd_index()) {
@@ -210,7 +214,7 @@ void VendorGraphicBufferMeta::init(const buffer_handle_t handle)
 		}
 	}
 
-	internal_format = gralloc_hnd->alloc_format & MALI_GRALLOC_INTFMT_FMT_MASK;
+	internal_format = gralloc_hnd->alloc_format;
 	frameworkFormat = gralloc_hnd->req_format;
 
 	width  = gralloc_hnd->width;

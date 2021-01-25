@@ -193,6 +193,10 @@ void VendorGraphicBufferMeta::init(const buffer_handle_t handle)
 	size1 = gralloc_hnd->sizes[1];
 	size2 = gralloc_hnd->sizes[2];
 
+	offsets[0] = gralloc_hnd->plane_info[0].offset;
+	offsets[1] = gralloc_hnd->plane_info[1].offset;
+	offsets[2] = gralloc_hnd->plane_info[2].offset;
+
 	internal_format = gralloc_hnd->internal_format;
 	frameworkFormat = gralloc_hnd->req_format;
 

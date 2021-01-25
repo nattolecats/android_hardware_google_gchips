@@ -25,6 +25,7 @@
 
 #include "gralloc_priv.h"
 #include "mali_gralloc_bufferallocation.h"
+#include "mali_gralloc_usages.h"
 #include "format_info.h"
 #include "capabilities/gralloc_capabilities.h"
 #include "exynos_format.h"
@@ -120,6 +121,24 @@ static uint16_t get_consumers(uint64_t usage)
 	return consumers;
 }
 
+/*
+ * Video decoder producer can be signalled by a combination of usage flags
+ * (see definition of GRALLOC_USAGE_DECODER).
+ * However, individual HAL usage bits may also signal it.
+ * This function handles both cases.
+ *
+ * @param usage  [in]    Buffer usage.
+ *
+ * @return The corresponding producer flag, or 0 if the producer is not a VPU.
+ */
+static uint16_t get_vpu_producer(uint64_t usage)
+{
+	if (usage & hidl_common::BufferUsage::VIDEO_DECODER)
+	{
+		return MALI_GRALLOC_PRODUCER_VPU;
+	}
+	return 0;
+}
 
 /*
  * Determines all IP producers included by the requested buffer usage.
@@ -166,13 +185,7 @@ static uint16_t get_producers(uint64_t usage)
 		producers |= MALI_GRALLOC_PRODUCER_CAM;
 	}
 
-	/* Video decoder producer is signalled by a combination of usage flags
-	 * (see definition of GRALLOC_USAGE_DECODER).
-	 */
-	if ((usage & GRALLOC_USAGE_DECODER) == GRALLOC_USAGE_DECODER)
-	{
-		producers |= MALI_GRALLOC_PRODUCER_VPU;
-	}
+    producers |= get_vpu_producer(usage);
 
 	return producers;
 }
@@ -747,10 +760,9 @@ static uint64_t get_afbc_format(const uint32_t base_format,
 
 			/*
 			 * Specific producer/consumer combinations benefit from additional
-			 * AFBC features (e.g. GPU --> DPU).
+			 * AFBC features (e.g. * --> GPU).
 			 */
-			if (producer & MALI_GRALLOC_PRODUCER_GPU && consumer & MALI_GRALLOC_CONSUMER_DPU &&
-			    dpu_runtime_caps.caps_mask & MALI_GRALLOC_FORMAT_CAPABILITY_OPTIONS_PRESENT)
+			if (consumer & MALI_GRALLOC_CONSUMER_GPU)
 			{
 				if (producer_caps & MALI_GRALLOC_FORMAT_CAPABILITY_AFBC_SPLITBLK &&
 				    consumer_caps & MALI_GRALLOC_FORMAT_CAPABILITY_AFBC_SPLITBLK)
@@ -807,10 +819,6 @@ static void get_active_caps(const format_info_t format,
 
 	if (format.is_yuv)
 	{
-		/* AFBC wide-block is not supported across IP for YUV formats. */
-		producer_mask &= ~MALI_GRALLOC_FORMAT_CAPABILITY_AFBC_WIDEBLK;
-		consumer_mask &= ~MALI_GRALLOC_FORMAT_CAPABILITY_AFBC_WIDEBLK;
-
 		if ((producer_caps & MALI_GRALLOC_FORMAT_CAPABILITY_AFBC_YUV_WRITE) == 0)
 		{
 			producer_mask &= ~MALI_GRALLOC_FORMAT_CAPABILITY_AFBCENABLE_MASK;
@@ -1361,7 +1369,8 @@ uint32_t get_base_format(const uint64_t req_format,
 		}
 		else if ((usage & GRALLOC_USAGE_HW_CAMERA_READ) && (usage & GRALLOC_USAGE_HW_CAMERA_WRITE))
 		{
-			base_format = HAL_PIXEL_FORMAT_YCbCr_422_I; // YUYV
+			// Camera IMPLEMENTATION_DEFINED format output maps to NV21.
+			base_format = HAL_PIXEL_FORMAT_YCrCb_420_SP;
 		}
 		else
 		{

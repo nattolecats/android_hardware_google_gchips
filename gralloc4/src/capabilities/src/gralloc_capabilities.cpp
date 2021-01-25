@@ -71,13 +71,34 @@ void get_ip_capabilities(void)
 #if defined(MALI_GPU_SUPPORT_AFBC_BASIC) && (MALI_GPU_SUPPORT_AFBC_BASIC == 1)
 	gpu_runtime_caps.caps_mask |= MALI_GRALLOC_FORMAT_CAPABILITY_OPTIONS_PRESENT;
 	gpu_runtime_caps.caps_mask |= MALI_GRALLOC_FORMAT_CAPABILITY_AFBC_BASIC;
+	gpu_runtime_caps.caps_mask |= MALI_GRALLOC_FORMAT_CAPABILITY_AFBC_YUV_READ;
 	gpu_runtime_caps.caps_mask |= MALI_GRALLOC_FORMAT_CAPABILITY_PIXFMT_RGBA1010102;
 	gpu_runtime_caps.caps_mask |= MALI_GRALLOC_FORMAT_CAPABILITY_PIXFMT_RGBA16161616;
 
+#if defined(MALI_GPU_SUPPORT_AFBC_WRITE) && (MALI_GPU_SUPPORT_AFBC_YUV_WRITE == 1)
+	gpu_runtime_caps.caps_mask |= MALI_GRALLOC_FORMAT_CAPABILITY_AFBC_YUV_WRITE;
+#endif
+
+#if defined(MALI_GPU_SUPPORT_AFBC_SPLITBLK) && (MALI_GPU_SUPPORT_AFBC_SPLITBLK == 1)
+	gpu_runtime_caps.caps_mask |= MALI_GRALLOC_FORMAT_CAPABILITY_AFBC_SPLITBLK;
+#endif
+
+#if defined(MALI_GPU_SUPPORT_AFBC_WIDEBLK) && (MALI_GPU_SUPPORT_AFBC_WIDEBLK == 1)
+	gpu_runtime_caps.caps_mask |= MALI_GRALLOC_FORMAT_CAPABILITY_AFBC_SPLITBLK;
+	gpu_runtime_caps.caps_mask |= MALI_GRALLOC_FORMAT_CAPABILITY_AFBC_WIDEBLK;
+#endif
+
+#if defined(MALI_GPU_SUPPORT_AFBC_TILED_HEADERS) && (MALI_GPU_SUPPORT_AFBC_TILED_HEADERS == 1)
+	gpu_runtime_caps.caps_mask |= MALI_GRALLOC_FORMAT_CAPABILITY_AFBC_SPLITBLK;
+	gpu_runtime_caps.caps_mask |= MALI_GRALLOC_FORMAT_CAPABILITY_AFBC_WIDEBLK;
+	gpu_runtime_caps.caps_mask |= MALI_GRALLOC_FORMAT_CAPABILITY_AFBC_TILED_HEADERS;
+#endif
 #endif /* defined(MALI_GPU_SUPPORT_AFBC_BASIC) && (MALI_GPU_SUPPORT_AFBC_BASIC == 1) */
 
 	/* Determine VPU IP capabilities */
 	vpu_runtime_caps.caps_mask |= MALI_GRALLOC_FORMAT_CAPABILITY_OPTIONS_PRESENT;
+	vpu_runtime_caps.caps_mask |= MALI_GRALLOC_FORMAT_CAPABILITY_AFBC_BASIC;
+	vpu_runtime_caps.caps_mask |= MALI_GRALLOC_FORMAT_CAPABILITY_AFBC_YUV_WRITE;
 
 /* Build specific capability changes */
 #if defined(GRALLOC_ARM_NO_EXTERNAL_AFBC) && (GRALLOC_ARM_NO_EXTERNAL_AFBC == 1)
