@@ -45,6 +45,7 @@ cc_defaults {
 		"libhardware",
 		"liblog",
 		"libcutils",
+		"libdmabufheap",
 		"libion_google",
 		"libsync",
 		"libutils",

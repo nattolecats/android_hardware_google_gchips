@@ -174,6 +174,7 @@ static void get_ip_capabilities(void)
 	dpu_runtime_caps.caps_mask |= MALI_GRALLOC_FORMAT_CAPABILITY_OPTIONS_PRESENT;
 	dpu_runtime_caps.caps_mask |= MALI_GRALLOC_FORMAT_CAPABILITY_AFBC_BASIC;
 	dpu_runtime_caps.caps_mask |= MALI_GRALLOC_FORMAT_CAPABILITY_AFBC_YUV_READ;
+	dpu_runtime_caps.caps_mask |= MALI_GRALLOC_FORMAT_CAPABILITY_PIXFMT_RGBA1010102;
 
 	/* Determine GPU IP capabilities */
 	if (access(MALI_GRALLOC_GPU_LIBRARY_PATH1 MALI_GRALLOC_GPU_LIB_NAME, R_OK) == 0)
@@ -1580,8 +1581,8 @@ uint32_t get_base_format(const uint64_t req_format,
 		}
 		else if ((usage & GRALLOC1_CONSUMER_USAGE_CAMERA) && (usage & GRALLOC1_PRODUCER_USAGE_CAMERA))
 		{
-			// Camera IMPLEMENTATION_DEFINED format output maps to NV21.
-			base_format = HAL_PIXEL_FORMAT_YCrCb_420_SP;
+			// Camera IMPLEMENTATION_DEFINED format output maps to NV21M narrow.
+			base_format = HAL_PIXEL_FORMAT_EXYNOS_YCrCb_420_SP_M;
 		}
 		else
 		{

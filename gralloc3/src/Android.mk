@@ -229,16 +229,16 @@ LOCAL_CFLAGS += -DGRALLOC_NO_CSC_SUPPORTED
 endif
 
 ifeq ($(shell expr $(GRALLOC_VERSION_MAJOR) \<= 1), 1)
-LOCAL_SHARED_LIBRARIES := libhardware liblog libcutils libGLESv1_CM libion_google libsync libutils
+LOCAL_SHARED_LIBRARIES := libhardware liblog libcutils libGLESv1_CM libion_google libsync libutils libdmabufheap
 else ifeq ($(GRALLOC_VERSION_MAJOR), 2)
     ifeq ($(GRALLOC_MAPPER), 1)
-        LOCAL_SHARED_LIBRARIES := libhardware libhidlbase libhidltransport liblog libcutils libion_google libsync libutils
+        LOCAL_SHARED_LIBRARIES := libhardware libhidlbase libhidltransport liblog libcutils libion_google libsync libutils libdmabufheap
         LOCAL_SHARED_LIBRARIES += android.hardware.graphics.mapper@2.0
         ifeq ($(HIDL_MAPPER_VERSION_SCALED), 210)
             LOCAL_SHARED_LIBRARIES += android.hardware.graphics.mapper@2.1
         endif
     else
-        LOCAL_SHARED_LIBRARIES := libhardware libhidlbase libhidltransport liblog libcutils libion_google libsync libutils
+        LOCAL_SHARED_LIBRARIES := libhardware libhidlbase libhidltransport liblog libcutils libion_google libsync libutils libdmabufheap
         LOCAL_SHARED_LIBRARIES += android.hardware.graphics.allocator@2.0
         ifeq ($(HIDL_MAPPER_VERSION_SCALED), 210)
             LOCAL_SHARED_LIBRARIES += android.hardware.graphics.mapper@2.1

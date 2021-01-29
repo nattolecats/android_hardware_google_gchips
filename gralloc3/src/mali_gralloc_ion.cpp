@@ -36,6 +36,7 @@
 #include <hardware/gralloc.h>
 #endif
 
+#include <BufferAllocator/BufferAllocator.h>
 #include "mali_gralloc_module.h"
 #include "mali_gralloc_private_interface_types.h"
 #include "mali_gralloc_buffer.h"
@@ -66,8 +67,11 @@ static const enum ion_heap_type ION_HEAP_TYPE_SECURE = (enum ion_heap_type)(((un
 #endif
 #endif
 
+static std::unique_ptr<BufferAllocator> buffer_allocator;
 static int ion_client = -1;
 static bool secure_heap_exists = true;
+
+static const char kDmabufSensorDirectHeapName[] = "sensor_direct_heap";
 
 static void set_ion_flags(enum ion_heap_type heap_type, uint64_t usage,
                           unsigned int *priv_heap_flag, unsigned int *ion_flags)
@@ -337,6 +341,55 @@ err:
 
 }
 
+/*
+ * Selects a DMA-BUF heap name.
+ *
+ * @param heap_mask     [in]    ION heap mask for which equivalent DMA-BUF heap name
+ *                              needs to be looked up.
+ *
+ * @return a tuple in std::pair form with the first member as heap
+ *         name and second as minimum page size (in bytes).
+ *
+ */
+static std::pair<std::string, int> select_dmabuf_heap(unsigned int heap_mask)
+{
+	if (heap_mask == EXYNOS_ION_HEAP_SENSOR_DIRECT_MASK)
+	{
+		return std::make_pair(kDmabufSensorDirectHeapName, SZ_4K);
+	}
+	return {};
+}
+
+/*
+ *  Allocates in the DMA-BUF heap with name @heap_name. If allocation fails from
+ *  the DMA-BUF heap or if it does not exist, falls back to an ION heap of the
+ *  same name.
+ *
+ * @param heap_name [in]    DMA-BUF heap name for allocation
+ * @param size      [in]    Requested buffer size (in bytes).
+ * @param flags     [in]    ION allocation attributes defined by ION_FLAG_* to
+ *                          be used for ION allocations. Will not be used with
+ *                          DMA-BUF heaps since the framework does not support
+ *                          allocation flags.
+ *
+ * @return fd of the allocated buffer on success, -1 otherwise;
+ */
+static int alloc_from_dmabuf_heap(const std::string& heap_name, size_t size, unsigned int flags)
+{
+	if (!buffer_allocator)
+	{
+		return -1;
+	}
+
+	int shared_fd = buffer_allocator->Alloc(heap_name, size, flags);
+	if (shared_fd < 0)
+	{
+		ALOGE("Allocation failed for heap %s error: %d\n", heap_name.c_str(), shared_fd);
+		return -1;
+	}
+
+	return shared_fd;
+}
 
 /*
  *  Identifies a heap and retrieves file descriptor from ION for allocation
@@ -354,17 +407,32 @@ static int alloc_from_ion_heap(uint64_t usage, size_t size,
                                enum ion_heap_type heap_type, unsigned int flags,
                                int *min_pgsz)
 {
-	int shared_fd = -1;
-
-	if (ion_client < 0 ||
-	    size <= 0 ||
-	    heap_type == ION_HEAP_TYPE_INVALID ||
-	    min_pgsz == NULL)
+	if (size == 0 || min_pgsz == NULL)
 	{
 		return -1;
 	}
 
 	unsigned int heap_mask = select_heap_mask(usage);
+
+	auto dmabuf_heap_info = select_dmabuf_heap(heap_mask);
+	auto dmabuf_heap_name = dmabuf_heap_info.first;
+
+	int shared_fd;
+	if (!dmabuf_heap_name.empty())
+	{
+		shared_fd = alloc_from_dmabuf_heap(dmabuf_heap_name, size, flags);
+		if (shared_fd >= 0)
+		{
+			*min_pgsz = dmabuf_heap_info.second;
+		}
+		return shared_fd;
+	}
+
+	if (ion_client < 0 || heap_type == ION_HEAP_TYPE_INVALID)
+	{
+		return -1;
+	}
+
 	shared_fd = exynos_ion_alloc(ion_client, size, heap_mask, flags);
 
 	/* Check if allocation from selected heap failed and fall back to system
@@ -586,6 +654,12 @@ static int open_and_query_ion(void)
 
 int mali_gralloc_ion_open(void)
 {
+	if (!buffer_allocator)
+	{
+		buffer_allocator = std::make_unique<BufferAllocator>();
+		if (!buffer_allocator)
+			AERR("Unable to create BufferAllocator object");
+	}
 	return open_and_query_ion();
 }
 
@@ -1291,5 +1365,7 @@ void mali_gralloc_ion_close(void)
 
 		ion_client = -1;
 	}
+
+	buffer_allocator.reset();
 }
 

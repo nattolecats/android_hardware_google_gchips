@@ -72,7 +72,8 @@ LOCAL_SHARED_LIBRARIES := \
     libhidlbase \
     libhidltransport \
     libnativewindow \
-    libion_google
+    libion_google \
+    libdmabufheap
 
 LOCAL_STATIC_LIBRARIES := libarect
 LOCAL_HEADER_LIBRARIES := libnativebase_headers
