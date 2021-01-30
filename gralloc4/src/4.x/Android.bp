@@ -96,7 +96,7 @@ cc_library_shared {
 		"libgralloc_drmutils",
 	],
 	shared_libs: [
-		"arm.graphics-ndk_platform",
+		"arm.graphics-V1-ndk_platform",
 		"android.hardware.graphics.mapper@4.0",
 	],
 	srcs: [
