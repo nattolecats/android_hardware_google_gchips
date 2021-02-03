@@ -90,6 +90,8 @@ uint32_t drm_fourcc_from_handle(const private_handle_t *hnd)
 		/* Google Formats */
 		{ HAL_PIXEL_FORMAT_GOOGLE_NV12_SP,      DRM_FORMAT_NV12 },
 		{ HAL_PIXEL_FORMAT_GOOGLE_NV12_SP_10B,  DRM_FORMAT_P010 },
+		{ HAL_PIXEL_FORMAT_GOOGLE_R_8,  DRM_FORMAT_R8 },
+		{ HAL_PIXEL_FORMAT_GOOGLE_RG_88,  DRM_FORMAT_RG88 },
 	};
 
 	const uint64_t unmasked_format = hnd->alloc_format;

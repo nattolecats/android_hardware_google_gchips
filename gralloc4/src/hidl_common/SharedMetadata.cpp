@@ -29,7 +29,7 @@ namespace common
 
 void shared_metadata_init(void *memory, std::string_view name)
 {
-	shared_metadata *m = new(memory) shared_metadata(name);
+	new(memory) shared_metadata(name);
 }
 
 size_t shared_metadata_size()

@@ -68,7 +68,6 @@ endif
 #define AFBC_PIXELS_PER_BLOCK 256
 #define AFBC_HEADER_BUFFER_BYTES_PER_BLOCKENTRY 16
 
-static int mali_gralloc_buffer_free_internal(buffer_handle_t *pHandle, uint32_t num_hnds);
 bool afbc_format_fallback(uint32_t * const format_idx, const uint64_t usage, bool force);
 
 
@@ -303,11 +302,6 @@ static int max(int a, int b, int c)
 	return c > max(a, b) ? c : max(a, b);
 }
 
-static int max(int a, int b, int c, int d)
-{
-	return d > max(a, b, c) ? d : max(a, b, c);
-}
-
 /*
  * Obtain plane allocation dimensions (in pixels).
  *
@@ -435,6 +429,7 @@ uint32_t lcm(uint32_t a, uint32_t b)
 }
 
 
+#if REALIGN_YV12 == 1
 /*
  * YV12 stride has additional complexity since chroma stride
  * must conform to the following:
@@ -470,7 +465,7 @@ static void update_yv12_stride(int8_t plane,
 		assert(*byte_stride & 15 == 0);
 	}
 }
-
+#endif
 
 
 /*
@@ -701,8 +696,6 @@ static bool validate_format(const format_info_t * const format,
 static int prepare_descriptor_exynos_formats(
 		buffer_descriptor_t *bufDescriptor)
 {
-	size_t sizes[3] = {0, 0, 0};
-
 	int fd_count = 1;
 	int w = bufDescriptor->width;
 	int h = bufDescriptor->height;
@@ -878,7 +871,6 @@ static int prepare_descriptor_exynos_formats(
 int mali_gralloc_derive_format_and_size(buffer_descriptor_t * const bufDescriptor)
 {
 	alloc_type_t alloc_type{};
-	int err;
 
 	int alloc_width = bufDescriptor->width;
 	int alloc_height = bufDescriptor->height;
@@ -998,7 +990,8 @@ int mali_gralloc_derive_format_and_size(buffer_descriptor_t * const bufDescripto
 
 
 int mali_gralloc_buffer_allocate(const gralloc_buffer_descriptor_t *descriptors,
-                                 uint32_t numDescriptors, buffer_handle_t *pHandle, bool *shared_backend)
+                                 uint32_t numDescriptors, buffer_handle_t *pHandle, bool *shared_backend,
+                                 int fd)
 {
 	bool shared = false;
 	uint64_t backing_store_id = 0x0;
@@ -1030,7 +1023,7 @@ int mali_gralloc_buffer_allocate(const gralloc_buffer_descriptor_t *descriptors,
 	}
 
 	/* Allocate ION backing store memory */
-	err = mali_gralloc_ion_allocate(descriptors, numDescriptors, pHandle, &shared);
+	err = mali_gralloc_ion_allocate(descriptors, numDescriptors, pHandle, &shared, fd);
 	if (err < 0)
 	{
 		return err;
@@ -1043,9 +1036,7 @@ int mali_gralloc_buffer_allocate(const gralloc_buffer_descriptor_t *descriptors,
 
 	for (uint32_t i = 0; i < numDescriptors; i++)
 	{
-		buffer_descriptor_t * const bufDescriptor = (buffer_descriptor_t *)descriptors[i];
 		private_handle_t *hnd = (private_handle_t *)pHandle[i];
-		uint64_t usage = bufDescriptor->consumer_usage | bufDescriptor->producer_usage;
 
 		mali_gralloc_dump_buffer_add(hnd);
 
@@ -1083,17 +1074,4 @@ int mali_gralloc_buffer_free(buffer_handle_t pHandle)
 	gralloc_shared_memory_free(hnd);
 
 	return 0;
-}
-
-static int mali_gralloc_buffer_free_internal(buffer_handle_t *pHandle, uint32_t num_hnds)
-{
-	int err = -1;
-	uint32_t i = 0;
-
-	for (i = 0; i < num_hnds; i++)
-	{
-		err = mali_gralloc_buffer_free(pHandle[i]);
-	}
-
-	return err;
 }

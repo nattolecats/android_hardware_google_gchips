@@ -90,7 +90,15 @@ public:
 		};
 	};
 
-	uint32_t offsets[3];
+	union {
+		uint32_t offsets[3];
+
+		struct {
+			uint32_t offset  = 0;
+			uint32_t offset1 = 0;
+			uint32_t offset2 = 0;
+		};
+	};
 
 	union
 	{

@@ -23,6 +23,7 @@
 #include <sys/types.h>
 #include <cstdint>
 #include <system/graphics-base-v1.0.h>
+#include <android/hardware/graphics/mapper/4.0/IMapper.h>
 
 
 namespace android::hardware::graphics::allocator::priv {
@@ -41,6 +42,9 @@ void setStridePixel(Descriptor &descriptor, int stride_pixel);
 void setFormat(Descriptor &descriptor, int format);
 
 buffer_handle_t createNativeHandle(const Descriptor &descriptor);
+
+android::hardware::graphics::mapper::V4_0::Error retain(buffer_handle_t handle);
+android::hardware::graphics::mapper::V4_0::Error release(buffer_handle_t handle);
 
 }  // namespace android::hardware::graphics::allocator::priv
 

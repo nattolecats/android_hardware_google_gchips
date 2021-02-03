@@ -74,6 +74,37 @@ struct buffer_descriptor_t
 		memset(plane_info, 0, sizeof(plane_info_t) * MAX_PLANES);
 		memset(alloc_sizes, 0, sizeof(alloc_sizes));
 	}
+
+	void dump(const std::string &str) const {
+		ALOGI("buffer_descriptor: %s "
+			"wh(%u %u) "
+			"usage_pc(0x%" PRIx64 " 0x%" PRIx64 ") "
+			"hal_format(0x%" PRIx64 ") "
+			"layer_count(%u) "
+			"format_type(%u) "
+			"name(%s)"
+			"reserved_size(%" PRIu64 ") "
+			"alloc_sizes(%" PRIu64 ", %" PRIu64 ", %" PRIu64 ")"
+			"pixel_stride(%d) alloc_format(0x%" PRIx64 ") fd_count(%d) "
+			"plane_count(%u) "
+			"plane[0](offset %" PRId64 ", idx %u, size %" PRIu64 " byte_stride %u, wh %u %u)"
+			"plane[1](offset %" PRId64 ", idx %u, size %" PRIu64 " byte_stride %u, wh %u %u)"
+			"plane[2](offset %" PRId64 ", idx %u, size %" PRIu64 " byte_stride %u, wh %u %u)"
+			"\n",
+			str.c_str(),
+			width, height, producer_usage, consumer_usage, hal_format,
+			layer_count,
+			format_type,
+			name.c_str(),
+			reserved_size,
+			alloc_sizes[0], alloc_sizes[1], alloc_sizes[2],
+			pixel_stride, alloc_format, fd_count,
+			plane_count,
+			plane_info[0].offset, plane_info[0].fd_idx, plane_info[0].size, plane_info[0].byte_stride, plane_info[0].alloc_width, plane_info[0].alloc_height,
+			plane_info[1].offset, plane_info[1].fd_idx, plane_info[1].size, plane_info[1].byte_stride, plane_info[1].alloc_width, plane_info[1].alloc_height,
+			plane_info[2].offset, plane_info[2].fd_idx, plane_info[2].size, plane_info[2].byte_stride, plane_info[2].alloc_width, plane_info[2].alloc_height
+		);
+	}
 };
 
 #endif /* MALI_GRALLOC_BUFFERDESCRIPTOR_H_ */

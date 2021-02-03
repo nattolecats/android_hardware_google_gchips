@@ -319,9 +319,8 @@ void mali_gralloc_adjust_dimensions(const uint64_t alloc_format,
                                     int* const width,
                                     int* const height)
 {
-	/* Determine producers and consumers. */
+	/* Determine producers. */
 	const uint16_t producers = get_producers(usage);
-	const uint16_t consumers = get_consumers(usage);
 
 	/*
 	 * Video producer requires additional height padding of AFBC buffers (whole
@@ -352,7 +351,6 @@ void mali_gralloc_adjust_dimensions(const uint64_t alloc_format,
 		}
 	}
 
-out:
 	MALI_GRALLOC_LOGV("%s: alloc_format=0x%" PRIx64 " usage=0x%" PRIx64
 	      " alloc_width=%u, alloc_height=%u",
 	      __FUNCTION__, alloc_format, usage, *width, *height);
@@ -728,10 +726,10 @@ static uint64_t get_afbc_format(const uint32_t base_format,
 		{
 			alloc_format |= MALI_GRALLOC_INTFMT_AFBC_BASIC;
 
+#if 0
 			const int format_idx = get_format_index(base_format);
 
 			/* TODO: AFBC YUV TRANSFORM corrupts screen when enabled. find out why */
-#if 0
 			if (format_idx != -1)
 			{
 				if (formats[format_idx].yuv_transform == true)
@@ -1237,66 +1235,6 @@ static uint64_t get_best_format(const uint32_t req_base_format,
 	return alloc_format;
 }
 
-/* Returns true if the format modifier specifies no compression scheme. */
-static bool is_uncompressed(uint64_t format_ext)
-{
-	return format_ext == 0;
-}
-
-
-/* Returns true if the format modifier specifies AFBC. */
-static bool is_afbc(uint64_t format_ext)
-{
-	return format_ext & MALI_GRALLOC_INTFMT_AFBC_BASIC;
-}
-
-/* Returns true if the format modifier specifies multiplane AFBC. */
-static bool is_multiplane_afbc(uint64_t format_ext)
-{
-	return is_afbc(format_ext) &&
-	       (format_ext & MALI_GRALLOC_INTFMT_AFBC_EXTRAWIDEBLK) &&
-	       (format_ext & MALI_GRALLOC_INTFMT_AFBC_TILED_HEADERS);
-}
-
-/* Returns true if the format modifier specifies single plane AFBC. */
-static bool is_single_plane_afbc(uint64_t format_ext)
-{
-	return is_afbc(format_ext) && !is_multiplane_afbc(format_ext);
-}
-
-/*
- * Determines the base format suitable for requested allocation format (base +
- * modifiers). Going forward, the base format requested MUST be compatible with
- * the format modifiers.
- *
- * @param fmt_idx        [in]    Index into format properties table (base format).
- * @param format_ext     [in]    Format modifiers (extension bits).
- *
- * @return base_format, suitable for modifiers;
- *         MALI_GRALLOC_FORMAT_INTERNAL_UNDEFINED, otherwise
- */
-static uint32_t get_base_format_for_modifiers(const int32_t fmt_idx,
-                                              const uint64_t format_ext)
-{
-	uint32_t base_format = MALI_GRALLOC_FORMAT_INTERNAL_UNDEFINED;
-	if (is_uncompressed(format_ext))
-	{
-		/* Uncompressed formats have no forced fallback. */
-		base_format = formats[fmt_idx].id;
-	}
-	else if (is_afbc(format_ext))
-	{
-		if (formats[fmt_idx].afbc &&
-		    (formats[fmt_idx].npln == 1 || is_multiplane_afbc(format_ext)))
-		{
-			/* Requested format modifiers are suitable for base format. */
-			base_format = formats[fmt_idx].id;
-		}
-	}
-
-	return base_format;
-}
-
 
 /*
  * Obtain format modifiers from requested format.
@@ -1504,7 +1442,6 @@ uint64_t mali_gralloc_select_format(const uint64_t req_format,
 
 		uint64_t producer_active_caps = producer_caps;
 		uint64_t consumer_active_caps = consumer_caps;
-		uint64_t consumer_caps_mask;
 
 		get_active_caps(formats[req_fmt_idx],
 		                producers, consumers,
