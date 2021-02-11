@@ -103,7 +103,7 @@ static void set_ion_flags(enum ion_heap_type heap_type, uint64_t usage,
 #endif
 			if ((usage & GRALLOC_USAGE_SW_READ_MASK) == GRALLOC_USAGE_SW_READ_OFTEN)
 			{
-				*ion_flags = ION_FLAG_CACHED | ION_FLAG_CACHED_NEEDS_SYNC;
+				*ion_flags = ION_FLAG_CACHED;
 			}
 #if GRALLOC_USE_ION_DMA_HEAP
 		}
@@ -111,22 +111,7 @@ static void set_ion_flags(enum ion_heap_type heap_type, uint64_t usage,
 		/* LSI Integration */
 		if ((usage & GRALLOC1_USAGE_SW_READ_MASK) == GRALLOC1_USAGE_READ_OFTEN)
 		{
-			*ion_flags = ION_FLAG_CACHED | ION_FLAG_CACHED_NEEDS_SYNC;
-
-			if (usage & GRALLOC1_PRODUCER_USAGE_GPU_RENDER_TARGET)
-			{
-				*ion_flags |= ION_FLAG_SYNC_FORCE;
-			}
-		}
-
-		if (usage & GRALLOC1_PRODUCER_USAGE_GPU_RENDER_TARGET || usage & GRALLOC_USAGE_HW_TEXTURE)
-		{
-			*ion_flags |= ION_FLAG_MAY_HWRENDER;
-		}
-
-		if (usage & GRALLOC1_PRODUCER_USAGE_NOZEROED)
-		{
-			*ion_flags |= ION_FLAG_NOZEROED;
+			*ion_flags = ION_FLAG_CACHED;
 		}
 
 #ifdef GRALLOC_PROTECTED_ION_FLAG_FOR_CAMERA_RESERVED
@@ -1104,17 +1089,6 @@ int mali_gralloc_ion_allocate(const gralloc_buffer_descriptor_t *descriptors,
 			}
 
 			set_ion_flags(heap_type, usage, &priv_heap_flag, &ion_flags);
-
-#if GRALLOC_INIT_AFBC == 1
-			/* If initializing AFBC header using the CPU, the buffer must be zeroed
-			 * in order to allow cpu mapping. Otherwise, mapping would be block for
-			 * security reasons
-			 * */
-			if (bufDescriptor->alloc_format & MALI_GRALLOC_INTFMT_AFBCENABLE_MASK)
-			{
-				ion_flags &= ~ION_FLAG_NOZEROED;
-			}
-#endif
 
 			if (~usage & GRALLOC1_PRODUCER_USAGE_HFR_MODE)
 			{

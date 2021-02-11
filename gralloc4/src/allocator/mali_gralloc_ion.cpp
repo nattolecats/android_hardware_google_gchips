@@ -165,22 +165,7 @@ static void set_ion_flags(uint64_t usage, unsigned int *ion_flags)
 
 	if ((usage & GRALLOC_USAGE_SW_READ_MASK) == GRALLOC_USAGE_SW_READ_OFTEN)
 	{
-		*ion_flags |= ION_FLAG_CACHED | ION_FLAG_CACHED_NEEDS_SYNC;
-
-		if (usage & GRALLOC_USAGE_HW_RENDER)
-		{
-			*ion_flags |= ION_FLAG_SYNC_FORCE;
-		}
-	}
-
-	if (usage & (GRALLOC_USAGE_HW_RENDER | GRALLOC_USAGE_HW_TEXTURE))
-	{
-		*ion_flags |= ION_FLAG_MAY_HWRENDER;
-	}
-
-	if (usage & GRALLOC_USAGE_NOZEROED)
-	{
-		*ion_flags |= ION_FLAG_NOZEROED;
+		*ion_flags |= ION_FLAG_CACHED;
 	}
 
 	/* TODO: does not seem to be used anymore. But check again to make sure */
