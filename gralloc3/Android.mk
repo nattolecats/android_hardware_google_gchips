@@ -65,7 +65,6 @@ LOCAL_SHARED_LIBRARIES := \
     liblog \
     libcutils \
     libutils \
-    android.hardware.graphics.allocator@2.0 \
     android.hardware.graphics.mapper@2.0 \
     libsync \
     libhardware \
@@ -84,7 +83,6 @@ LOCAL_C_INCLUDES := \
     $(TARGET_BOARD_KERNEL_HEADERS)
 
 LOCAL_SRC_FILES := \
-    GrallocWrapper.cpp \
     gralloc_vendor_interface.cpp \
     mali_gralloc_ion.cpp \
     gralloc_buffer_priv.cpp \
