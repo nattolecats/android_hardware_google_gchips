@@ -343,7 +343,7 @@ static inline uint64_t mali_gralloc_format_unwrap(int x)
 
 struct mali_gralloc_format_caps
 {
-	uint64_t caps_mask;
+	uint64_t caps_mask = 0;
 };
 typedef struct mali_gralloc_format_caps mali_gralloc_format_caps;
 

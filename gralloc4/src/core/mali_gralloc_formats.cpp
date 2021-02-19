@@ -37,16 +37,22 @@
  * VPU: Video processor
  * CAM: Camera ISP
  */
-#define MALI_GRALLOC_PRODUCER_CPU     ((uint16_t)1 << 0)
-#define MALI_GRALLOC_PRODUCER_GPU     ((uint16_t)1 << 1)
-#define MALI_GRALLOC_PRODUCER_DPU     ((uint16_t)1 << 2)
-#define MALI_GRALLOC_PRODUCER_VPU     ((uint16_t)1 << 4)
-#define MALI_GRALLOC_PRODUCER_CAM     ((uint16_t)1 << 5)
+#define MALI_GRALLOC_PRODUCER_CPU		((uint16_t)1 << 0)
+#define MALI_GRALLOC_PRODUCER_GPU		((uint16_t)1 << 1)
+#define MALI_GRALLOC_PRODUCER_DPU		((uint16_t)1 << 2)
+#define MALI_GRALLOC_PRODUCER_VPU		((uint16_t)1 << 4)
+#define MALI_GRALLOC_PRODUCER_CAM		((uint16_t)1 << 5)
+#define GOOGLE_GRALLOC_PRODUCER_BO		((uint16_t)1 << 6)
+#define GOOGLE_GRALLOC_PRODUCER_MFC		((uint16_t)1 << 7)
+#define GOOGLE_GRALLOC_PRODUCER_VPUS_MASK	(MALI_GRALLOC_PRODUCER_VPU | GOOGLE_GRALLOC_PRODUCER_BO | GOOGLE_GRALLOC_PRODUCER_MFC)
 
-#define MALI_GRALLOC_CONSUMER_CPU     ((uint16_t)1 << 0)
-#define MALI_GRALLOC_CONSUMER_GPU     ((uint16_t)1 << 1)
-#define MALI_GRALLOC_CONSUMER_DPU     ((uint16_t)1 << 2)
-#define MALI_GRALLOC_CONSUMER_VPU     ((uint16_t)1 << 3)
+#define MALI_GRALLOC_CONSUMER_CPU		((uint16_t)1 << 0)
+#define MALI_GRALLOC_CONSUMER_GPU		((uint16_t)1 << 1)
+#define MALI_GRALLOC_CONSUMER_DPU		((uint16_t)1 << 2)
+#define MALI_GRALLOC_CONSUMER_VPU		((uint16_t)1 << 3)
+#define GOOGLE_GRALLOC_CONSUMER_BO		((uint16_t)1 << 4)
+#define GOOGLE_GRALLOC_CONSUMER_MFC		((uint16_t)1 << 5)
+#define GOOGLE_GRALLOC_CONSUMER_VPUS_MASK	(MALI_GRALLOC_CONSUMER_VPU | GOOGLE_GRALLOC_CONSUMER_BO | GOOGLE_GRALLOC_CONSUMER_MFC)
 
 typedef struct
 {
@@ -54,6 +60,33 @@ typedef struct
 	uint64_t format_ext;
 	format_support_flags f_flags;
 } fmt_props;
+
+/*
+ * Video encoder consumer can be signalled by a combination of usage flags
+ * Besides VIDEO_ENCODER, clients can specify the specific IP block they belong
+ * to, for fine-grained control over capabilities.
+ *
+ * @param usage  [in]    Buffer usage.
+ *
+ * @return The corresponding consumer flag, or 0 if the consumer is not a VPU.
+ */
+static uint16_t get_vpu_consumer(uint64_t usage)
+{
+	if (!(usage & hidl_common::BufferUsage::VIDEO_ENCODER))
+		return 0;
+
+	/* When both the BO and MFC flags are present, the assumption is BO is the
+	   producer and MFC is the consumer. There is no use case as of now in which
+	   MFC is the producer and BO is the consumer. */
+	if (usage & GRALLOC_USAGE_GOOGLE_IP_MFC)
+		return GOOGLE_GRALLOC_CONSUMER_MFC;
+
+	if (usage & GRALLOC_USAGE_GOOGLE_IP_BO)
+		return GOOGLE_GRALLOC_CONSUMER_BO;
+
+	MALI_GRALLOC_LOGV("Video consumer IP not specified, falling back to default VPU consumer");
+	return MALI_GRALLOC_CONSUMER_VPU;
+}
 
 /*
  * Determines all IP consumers included by the requested buffer usage.
@@ -68,14 +101,12 @@ static uint16_t get_consumers(uint64_t usage)
 {
 	uint16_t consumers = 0;
 
-	/* Private usage is not applicable to consumer derivation */
-	usage &= ~GRALLOC_USAGE_PRIVATE_MASK;
 	/* Exclude usages also not applicable to consumer derivation */
 	usage &= ~GRALLOC_USAGE_PROTECTED;
 
 	get_ip_capabilities();
 
-	if (usage == GRALLOC_USAGE_HW_COMPOSER)
+	if ((usage & GRALLOC_USAGE_PUBLIC_MASK) == GRALLOC_USAGE_HW_COMPOSER)
 	{
 		consumers = MALI_GRALLOC_CONSUMER_DPU;
 	}
@@ -96,10 +127,7 @@ static uint16_t get_consumers(uint64_t usage)
 			consumers |= MALI_GRALLOC_CONSUMER_DPU;
 		}
 
-		if (usage & GRALLOC_USAGE_HW_VIDEO_ENCODER)
-		{
-			consumers |= MALI_GRALLOC_CONSUMER_VPU;
-		}
+		consumers |= get_vpu_consumer(usage);
 
 		/* GRALLOC_USAGE_HW_COMPOSER does not explicitly define whether the
 		 * display processor is producer or consumer. When used in combination
@@ -123,9 +151,8 @@ static uint16_t get_consumers(uint64_t usage)
 
 /*
  * Video decoder producer can be signalled by a combination of usage flags
- * (see definition of GRALLOC_USAGE_DECODER).
- * However, individual HAL usage bits may also signal it.
- * This function handles both cases.
+ * Besides VIDEO_DECODER, clients can specify the specific IP block they belong
+ * to, for fine-grained control over capabilities.
  *
  * @param usage  [in]    Buffer usage.
  *
@@ -133,11 +160,20 @@ static uint16_t get_consumers(uint64_t usage)
  */
 static uint16_t get_vpu_producer(uint64_t usage)
 {
-	if (usage & hidl_common::BufferUsage::VIDEO_DECODER)
-	{
-		return MALI_GRALLOC_PRODUCER_VPU;
-	}
-	return 0;
+	if (!(usage & hidl_common::BufferUsage::VIDEO_DECODER))
+		return 0;
+
+	/* When both the BO and MFC flags are present, the assumption is BO is the
+	   producer and MFC is the consumer. There is no use case as of now in which
+	   MFC is the producer and BO is the consumer. */
+	if (usage & GRALLOC_USAGE_GOOGLE_IP_BO)
+		return GOOGLE_GRALLOC_PRODUCER_BO;
+
+	if (usage & GRALLOC_USAGE_GOOGLE_IP_MFC)
+		return GOOGLE_GRALLOC_PRODUCER_MFC;
+
+	MALI_GRALLOC_LOGV("Video producer IP not specified, falling back to default VPU producer");
+	return MALI_GRALLOC_PRODUCER_VPU;
 }
 
 /*
@@ -153,8 +189,6 @@ static uint16_t get_producers(uint64_t usage)
 {
 	uint16_t producers = 0;
 
-	/* Private usage is not applicable to producer derivation */
-	usage &= ~GRALLOC_USAGE_PRIVATE_MASK;
 	/* Exclude usages also not applicable to producer derivation */
 	usage &= ~GRALLOC_USAGE_PROTECTED;
 
@@ -185,7 +219,7 @@ static uint16_t get_producers(uint64_t usage)
 		producers |= MALI_GRALLOC_PRODUCER_CAM;
 	}
 
-    producers |= get_vpu_producer(usage);
+	producers |= get_vpu_producer(usage);
 
 	return producers;
 }
@@ -233,6 +267,18 @@ static uint64_t get_consumer_caps(const uint16_t consumers)
 	    vpu_runtime_caps.caps_mask & MALI_GRALLOC_FORMAT_CAPABILITY_OPTIONS_PRESENT)
 	{
 		consumer_caps &= vpu_runtime_caps.caps_mask;
+	}
+
+	if (consumers & GOOGLE_GRALLOC_CONSUMER_BO &&
+	    bo_runtime_caps.caps_mask & MALI_GRALLOC_FORMAT_CAPABILITY_OPTIONS_PRESENT)
+	{
+		consumer_caps &= bo_runtime_caps.caps_mask;
+	}
+
+	if (consumers & GOOGLE_GRALLOC_CONSUMER_MFC &&
+	    mfc_runtime_caps.caps_mask & MALI_GRALLOC_FORMAT_CAPABILITY_OPTIONS_PRESENT)
+	{
+		consumer_caps &= mfc_runtime_caps.caps_mask;
 	}
 
 	/* TODO: if consumers is 0, set consumer_caps to 0 as well */
@@ -297,6 +343,18 @@ static uint64_t get_producer_caps(const uint16_t producers)
 		producer_caps &= vpu_runtime_caps.caps_mask;
 	}
 
+	if (producers & GOOGLE_GRALLOC_PRODUCER_BO &&
+	    bo_runtime_caps.caps_mask & MALI_GRALLOC_FORMAT_CAPABILITY_OPTIONS_PRESENT)
+	{
+		producer_caps &= bo_runtime_caps.caps_mask;
+	}
+
+	if (producers & GOOGLE_GRALLOC_PRODUCER_MFC &&
+	    mfc_runtime_caps.caps_mask & MALI_GRALLOC_FORMAT_CAPABILITY_OPTIONS_PRESENT)
+	{
+		producer_caps &= mfc_runtime_caps.caps_mask;
+	}
+
 	return producer_caps;
 }
 
@@ -327,7 +385,7 @@ void mali_gralloc_adjust_dimensions(const uint64_t alloc_format,
 	 * rows of 16x16 superblocks). Cropping will be applied to internal
 	 * dimensions to fit the public size.
 	 */
-	if ((producers & MALI_GRALLOC_PRODUCER_VPU) &&
+	if ((producers & GOOGLE_GRALLOC_PRODUCER_VPUS_MASK) &&
 		(alloc_format & MALI_GRALLOC_INTFMT_AFBC_BASIC))
 	{
 		const int32_t idx = get_format_index(alloc_format & MALI_GRALLOC_INTFMT_FMT_MASK);
@@ -391,7 +449,7 @@ static format_support_flags ip_supports_base_format(const uint16_t producers,
 	{
 		support &= format->cam_wr;
 	}
-	if (producers & MALI_GRALLOC_PRODUCER_VPU)
+	if (producers & GOOGLE_GRALLOC_PRODUCER_VPUS_MASK)
 	{
 		support &= format->vpu_wr;
 	}
@@ -409,7 +467,7 @@ static format_support_flags ip_supports_base_format(const uint16_t producers,
 	{
 		support &= format->dpu_rd;
 	}
-	if (consumers & MALI_GRALLOC_CONSUMER_VPU)
+	if (consumers & GOOGLE_GRALLOC_CONSUMER_VPUS_MASK)
 	{
 		support &= format->vpu_rd;
 	}
@@ -719,7 +777,7 @@ static uint64_t get_afbc_format(const uint32_t base_format,
 	 * and consumers. NOTE: AFBC is not supported for video transcode (VPU --> VPU).
 	 */
 	if (producer_caps & consumer_caps & MALI_GRALLOC_FORMAT_CAPABILITY_OPTIONS_PRESENT &&
-	    ((producer & MALI_GRALLOC_PRODUCER_VPU) == 0 || (consumer & MALI_GRALLOC_CONSUMER_VPU) == 0))
+	    ((producer & GOOGLE_GRALLOC_PRODUCER_VPUS_MASK) == 0 || (consumer & GOOGLE_GRALLOC_CONSUMER_VPUS_MASK) == 0))
 	{
 		if (producer_caps & MALI_GRALLOC_FORMAT_CAPABILITY_AFBC_BASIC &&
 		    consumer_caps & MALI_GRALLOC_FORMAT_CAPABILITY_AFBC_BASIC)
@@ -1382,7 +1440,6 @@ uint64_t mali_gralloc_select_format(const uint64_t req_format,
 	if (type != MALI_GRALLOC_FORMAT_TYPE_INTERNAL && (usage & (~VALID_USAGE)) != 0)
 	{
 		MALI_GRALLOC_LOGE("Invalid usage specified: 0x%" PRIx64, usage);
-		goto out;
 	}
 
 	/* TODO: Make a function for finding formats that should be allocated as the request format */

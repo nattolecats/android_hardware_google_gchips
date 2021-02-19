@@ -24,6 +24,8 @@ extern mali_gralloc_format_caps dpu_runtime_caps;
 extern mali_gralloc_format_caps vpu_runtime_caps;
 extern mali_gralloc_format_caps gpu_runtime_caps;
 extern mali_gralloc_format_caps cam_runtime_caps;
+extern mali_gralloc_format_caps bo_runtime_caps;
+extern mali_gralloc_format_caps mfc_runtime_caps;
 
 /*
  * Obtains the capabilities of each media system IP that form the producers
