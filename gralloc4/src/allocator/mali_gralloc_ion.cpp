@@ -58,6 +58,11 @@
 #endif
 
 static const char kDmabufSensorDirectHeapName[] = "sensor_direct_heap";
+static const char kDmabufFaceauthTpuHeapName[] = "faceauth_tpu-secure";
+static const char kDmabufFaceauthImgHeapName[] = "faimg-secure";
+static const char kDmabufFaceauthRawImgHeapName[] = "farawimg-secure";
+static const char kDmabufFaceauthPrevHeapName[] = "faprev-secure";
+static const char kDmabufFaceauthModelHeapName[] = "famodel-secure";
 
 struct ion_device
 {
@@ -267,11 +272,22 @@ static unsigned int select_heap_mask(uint64_t usage)
  */
 static std::string select_dmabuf_heap(unsigned int heap_mask)
 {
-	if (heap_mask == EXYNOS_ION_HEAP_SENSOR_DIRECT_MASK)
-	{
-		return kDmabufSensorDirectHeapName;
+	switch (heap_mask) {
+		case EXYNOS_ION_HEAP_SENSOR_DIRECT_MASK:
+			return kDmabufSensorDirectHeapName;
+		case EXYNOS_ION_HEAP_FA_TPU_MASK:
+			return kDmabufFaceauthTpuHeapName;
+		case EXYNOS_ION_HEAP_FA_IMG_MASK:
+			return kDmabufFaceauthImgHeapName;
+		case EXYNOS_ION_HEAP_FA_RAWIMG_MASK:
+			return kDmabufFaceauthRawImgHeapName;
+		case EXYNOS_ION_HEAP_FA_PREV_MASK:
+			return kDmabufFaceauthPrevHeapName;
+		case EXYNOS_ION_HEAP_FA_MODEL_MASK:
+			return kDmabufFaceauthModelHeapName;
+		default:
+			return {};
 	}
-	return {};
 }
 
 int ion_device::alloc_from_dmabuf_heap(const std::string& heap_name, size_t size,

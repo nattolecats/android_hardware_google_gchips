@@ -72,6 +72,11 @@ static int ion_client = -1;
 static bool secure_heap_exists = true;
 
 static const char kDmabufSensorDirectHeapName[] = "sensor_direct_heap";
+static const char kDmabufFaceauthTpuHeapName[] = "faceauth_tpu-secure";
+static const char kDmabufFaceauthImgHeapName[] = "faimg-secure";
+static const char kDmabufFaceauthRawImgHeapName[] = "farawimg-secure";
+static const char kDmabufFaceauthPrevHeapName[] = "faprev-secure";
+static const char kDmabufFaceauthModelHeapName[] = "famodel-secure";
 
 static void set_ion_flags(enum ion_heap_type heap_type, uint64_t usage,
                           unsigned int *priv_heap_flag, unsigned int *ion_flags)
@@ -338,11 +343,22 @@ err:
  */
 static std::pair<std::string, int> select_dmabuf_heap(unsigned int heap_mask)
 {
-	if (heap_mask == EXYNOS_ION_HEAP_SENSOR_DIRECT_MASK)
-	{
-		return std::make_pair(kDmabufSensorDirectHeapName, SZ_4K);
+	switch (heap_mask) {
+		case EXYNOS_ION_HEAP_SENSOR_DIRECT_MASK:
+			return std::make_pair(kDmabufSensorDirectHeapName, SZ_4K);
+		case EXYNOS_ION_HEAP_FA_TPU_MASK:
+			return std::make_pair(kDmabufFaceauthTpuHeapName, SZ_4K);
+		case EXYNOS_ION_HEAP_FA_IMG_MASK:
+			return std::make_pair(kDmabufFaceauthImgHeapName, SZ_4K);
+		case EXYNOS_ION_HEAP_FA_RAWIMG_MASK:
+			return std::make_pair(kDmabufFaceauthRawImgHeapName, SZ_4K);
+		case EXYNOS_ION_HEAP_FA_PREV_MASK:
+			return std::make_pair(kDmabufFaceauthPrevHeapName, SZ_4K);
+		case EXYNOS_ION_HEAP_FA_MODEL_MASK:
+			return std::make_pair(kDmabufFaceauthModelHeapName, SZ_4K);
+		default:
+			return {};
 	}
-	return {};
 }
 
 /*
