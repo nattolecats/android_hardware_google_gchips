@@ -68,6 +68,7 @@ typedef struct
 	bool linear;                    /* Linear/uncompressed supported. */
 	bool yuv_transform;             /* Supports AFBC YUV transform: 3+ channel RGB (strict R-G-B-? order) with less than 12-bit per sample. */
 	bool flex;                      /* Linear version of format can be represented as flex. */
+	bool planes_contiguous;         /* True if all planes in format are contiguous in memory.  Has no effect on non-planar formats. */
 	/* Computes the total number of components in the format. */
 	int total_components() const
 	{

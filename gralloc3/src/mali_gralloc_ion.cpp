@@ -77,6 +77,8 @@ static const char kDmabufFaceauthImgHeapName[] = "faimg-secure";
 static const char kDmabufFaceauthRawImgHeapName[] = "farawimg-secure";
 static const char kDmabufFaceauthPrevHeapName[] = "faprev-secure";
 static const char kDmabufFaceauthModelHeapName[] = "famodel-secure";
+static const char kDmabufVframeSecureHeapName[] = "vframe-secure";
+static const char kDmabufVstreamSecureHeapName[] = "vstream-secure";
 
 static void set_ion_flags(enum ion_heap_type heap_type, uint64_t usage,
                           unsigned int *priv_heap_flag, unsigned int *ion_flags)
@@ -356,6 +358,10 @@ static std::pair<std::string, int> select_dmabuf_heap(unsigned int heap_mask)
 			return std::make_pair(kDmabufFaceauthPrevHeapName, SZ_4K);
 		case EXYNOS_ION_HEAP_FA_MODEL_MASK:
 			return std::make_pair(kDmabufFaceauthModelHeapName, SZ_4K);
+		case EXYNOS_ION_HEAP_VIDEO_FRAME_MASK:
+			return std::make_pair(kDmabufVframeSecureHeapName, SZ_4K);
+		case EXYNOS_ION_HEAP_VIDEO_STREAM_MASK:
+			return std::make_pair(kDmabufVstreamSecureHeapName, SZ_4K);
 		default:
 			return {};
 	}

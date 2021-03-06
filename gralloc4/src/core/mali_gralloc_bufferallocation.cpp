@@ -316,14 +316,18 @@ static void get_pixel_w_h(uint32_t * const width,
                           bool has_cpu_usage)
 {
 	const rect_t sb = get_afbc_sb_size(alloc_type, plane);
+	const bool is_primary_plane = (plane == 0 || !format.planes_contiguous);
 
 	/*
 	 * Round-up plane dimensions, to multiple of:
 	 * - Samples for all channels (sub-sampled formats)
 	 * - Memory bytes/words (some packed formats)
 	 */
-	*width = GRALLOC_ALIGN(*width, format.align_w);
-	*height = GRALLOC_ALIGN(*height, format.align_h);
+	if (is_primary_plane)
+	{
+		*width = GRALLOC_ALIGN(*width, format.align_w);
+		*height = GRALLOC_ALIGN(*height, format.align_h);
+	}
 
 	/*
 	 * Sub-sample (sub-sampled) planes.
@@ -339,7 +343,7 @@ static void get_pixel_w_h(uint32_t * const width,
 	 * where format stride is stated in pixels.
 	 */
 	int pixel_align_w = 1, pixel_align_h = 1;
-	if (has_cpu_usage)
+	if (has_cpu_usage && is_primary_plane)
 	{
 		pixel_align_w = format.align_w_cpu;
 	}
@@ -550,7 +554,11 @@ static void calc_allocation_size(const int width,
 #endif
 			{
 				assert((format.bpp[plane] * format.align_w_cpu) % 8 == 0);
-				cpu_align = (format.bpp[plane] * format.align_w_cpu) / 8;
+	            const bool is_primary_plane = (plane == 0 || !format.planes_contiguous);
+				if (is_primary_plane)
+				{
+					cpu_align = (format.bpp[plane] * format.align_w_cpu) / 8;
+				}
 			}
 
 			uint32_t stride_align = lcm(hw_align, cpu_align);

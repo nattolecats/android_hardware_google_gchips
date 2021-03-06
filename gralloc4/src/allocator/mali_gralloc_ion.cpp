@@ -63,6 +63,8 @@ static const char kDmabufFaceauthImgHeapName[] = "faimg-secure";
 static const char kDmabufFaceauthRawImgHeapName[] = "farawimg-secure";
 static const char kDmabufFaceauthPrevHeapName[] = "faprev-secure";
 static const char kDmabufFaceauthModelHeapName[] = "famodel-secure";
+static const char kDmabufVframeSecureHeapName[] = "vframe-secure";
+static const char kDmabufVstreamSecureHeapName[] = "vstream-secure";
 
 struct ion_device
 {
@@ -285,6 +287,10 @@ static std::string select_dmabuf_heap(unsigned int heap_mask)
 			return kDmabufFaceauthPrevHeapName;
 		case EXYNOS_ION_HEAP_FA_MODEL_MASK:
 			return kDmabufFaceauthModelHeapName;
+		case EXYNOS_ION_HEAP_VIDEO_FRAME_MASK:
+			return kDmabufVframeSecureHeapName;
+		case EXYNOS_ION_HEAP_VIDEO_STREAM_MASK:
+			return kDmabufVstreamSecureHeapName;
 		default:
 			return {};
 	}
