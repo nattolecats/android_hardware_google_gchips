@@ -160,7 +160,6 @@ enum ExynosGraphicBufferUsage {
         NOZEROED                        = 1ULL << 58,
         PRIVATE_NONSECURE               = 1ULL << 59,
         VIDEO_PRIVATE_DATA              = 1ULL << 60,
-        VIDEO_EXT                       = 1ULL << 61,
         DAYDREAM_SINGLE_BUFFER_MODE     = 1ULL << 62,
         YUV_RANGE_FULL                  = 1ULL << 63,
 };

@@ -1364,17 +1364,6 @@ int mali_gralloc_buffer_allocate(mali_gralloc_module *m, const gralloc_buffer_de
 	{
 		buffer_descriptor_t * const bufDescriptor = (buffer_descriptor_t *)(descriptors[i]);
 
-		// W/A for BLOB DRM Contents. we should add additional usages to allocate buffer
-		if(bufDescriptor->hal_format == HAL_PIXEL_FORMAT_BLOB)
-		{
-			uint64_t usage = bufDescriptor->producer_usage | bufDescriptor->consumer_usage;
-			if(usage == GRALLOC_USAGE_PROTECTED)
-			{
-				bufDescriptor->producer_usage |= GRALLOC_USAGE_DECODER;
-				bufDescriptor->consumer_usage |= GRALLOC1_CONSUMER_USAGE_VIDEO_EXT;
-			}
-		}
-
 		err = mali_gralloc_derive_format_and_size(m, bufDescriptor);
 		if (err != 0)
 		{

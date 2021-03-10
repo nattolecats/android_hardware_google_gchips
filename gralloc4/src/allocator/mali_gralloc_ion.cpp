@@ -224,10 +224,6 @@ static unsigned int select_heap_mask(uint64_t usage)
 		{
 			heap_mask = EXYNOS_ION_HEAP_SECURE_CAMERA_MASK;
 		}
-		else if (usage & GRALLOC_USAGE_VIDEO_EXT)
-		{
-			heap_mask = EXYNOS_ION_HEAP_VIDEO_STREAM_MASK;
-		}
 		else if ((usage & GRALLOC_USAGE_HW_COMPOSER) &&
 			!(usage & GRALLOC_USAGE_HW_TEXTURE) &&
 			!(usage & GRALLOC_USAGE_HW_RENDER))

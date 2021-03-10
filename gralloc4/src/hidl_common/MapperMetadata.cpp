@@ -290,11 +290,6 @@ static android::status_t get_plane_layouts(const private_handle_t *handle, std::
 			int64_t sample_increment_in_bits = format_info.bpp[plane_index];
 			int64_t offset = handle->plane_info[plane_index].offset;
 
-			if (handle->plane_info[plane_index].fd_idx == plane_index)
-			{
-				offset = (int64_t)handle->bases[plane_index] - handle->bases[0];
-			}
-
 			/* sample increments in bits must be 8 for y plane for lock */
 			if (plane_index == 0)
 			{

@@ -60,11 +60,6 @@ LOCAL_CFLAGS += -DBOARD_EXYNOS_S10B_FORMAT_ALIGN=16
 endif
 #endif
 
-/* Exynos W/A for BLOB DRM Contents.
- * Assigning additional usage to allocate buffer would be better...
- */
-#define BLOB_DRM_WA 1
-
 #define AFBC_PIXELS_PER_BLOCK 256
 #define AFBC_HEADER_BUFFER_BYTES_PER_BLOCKENTRY 16
 
@@ -1008,19 +1003,6 @@ int mali_gralloc_buffer_allocate(const gralloc_buffer_descriptor_t *descriptors,
 	for (uint32_t i = 0; i < numDescriptors; i++)
 	{
 		buffer_descriptor_t * const bufDescriptor = (buffer_descriptor_t *)(descriptors[i]);
-
-#if BLOB_DRM_WA == 1
-		// W/A for BLOB DRM Contents. we should add additional usages to allocate buffer
-		if(bufDescriptor->hal_format == HAL_PIXEL_FORMAT_BLOB)
-		{
-			uint64_t usage = bufDescriptor->producer_usage | bufDescriptor->consumer_usage;
-			if(usage == GRALLOC_USAGE_PROTECTED)
-			{
-				bufDescriptor->producer_usage |= GRALLOC_USAGE_DECODER;
-				bufDescriptor->consumer_usage |= GRALLOC_USAGE_VIDEO_EXT;
-			}
-		}
-#endif
 
 		/* Derive the buffer size from descriptor parameters */
 		err = mali_gralloc_derive_format_and_size(bufDescriptor);
