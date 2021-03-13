@@ -121,14 +121,8 @@ static void set_ion_flags(enum ion_heap_type heap_type, uint64_t usage,
 			*ion_flags = ION_FLAG_CACHED;
 		}
 
-#ifdef GRALLOC_PROTECTED_ION_FLAG_FOR_CAMERA_RESERVED
-		if (usage & GRALLOC1_PRODUCER_USAGE_CAMERA_RESERVED)
-		{
-			*ion_flags |= ION_FLAG_PROTECTED;
-		}
-#endif
 		// DRM or Secure Camera
-		if ((usage & GRALLOC1_PRODUCER_USAGE_PROTECTED) || usage & GRALLOC1_PRODUCER_USAGE_SECURE_CAMERA_RESERVED)
+		if (usage & GRALLOC1_PRODUCER_USAGE_PROTECTED)
 		{
 			*ion_flags |= ION_FLAG_PROTECTED;
 		}
@@ -221,14 +215,6 @@ static unsigned int select_heap_mask(uint64_t usage)
 		heap_mask = EXYNOS_ION_HEAP_CRYPTO_MASK;
 	}
 #endif
-	else if (usage & GRALLOC1_PRODUCER_USAGE_CAMERA_RESERVED)
-	{
-		heap_mask = EXYNOS_ION_HEAP_CAMERA_MASK;
-	}
-	else if (usage & GRALLOC1_PRODUCER_USAGE_SECURE_CAMERA_RESERVED)
-	{
-		heap_mask = EXYNOS_ION_HEAP_SECURE_CAMERA_MASK;
-	}
 	else if (usage & GRALLOC1_PRODUCER_USAGE_SENSOR_DIRECT_DATA)
 	{
 		heap_mask = EXYNOS_ION_HEAP_SENSOR_DIRECT_MASK;
@@ -277,8 +263,7 @@ static int gralloc_map(buffer_handle_t handle)
 	}
 
 	// Don't be mapped for Secure DRM & Secure Camera
-	if ((hnd->producer_usage & GRALLOC1_PRODUCER_USAGE_PROTECTED && !(hnd->consumer_usage & GRALLOC1_PRODUCER_USAGE_PRIVATE_NONSECURE))
-		|| hnd->producer_usage & GRALLOC1_PRODUCER_USAGE_SECURE_CAMERA_RESERVED)
+	if ((hnd->producer_usage & GRALLOC1_PRODUCER_USAGE_PROTECTED && !(hnd->consumer_usage & GRALLOC1_PRODUCER_USAGE_PRIVATE_NONSECURE)))
 	{
 		return 2;
 	}
@@ -290,7 +275,7 @@ static int gralloc_map(buffer_handle_t handle)
 	}
 
 	if (!(hnd->producer_usage &
-		(GRALLOC1_PRODUCER_USAGE_PROTECTED | GRALLOC1_PRODUCER_USAGE_NOZEROED |GRALLOC1_PRODUCER_USAGE_SECURE_CAMERA_RESERVED)))
+		(GRALLOC1_PRODUCER_USAGE_PROTECTED | GRALLOC1_PRODUCER_USAGE_NOZEROED)))
 	{
 		for (int idx = 0; idx < hnd->get_num_ion_fds(); idx++)
 		{

@@ -41,6 +41,7 @@ cc_library_shared {
 		"core/format_info.cpp",
 		"core/mali_gralloc_formats.cpp",
 		"core/mali_gralloc_bufferallocation.cpp",
+		"core/mali_gralloc_bufferdescriptor.cpp",
 		"core/mali_gralloc_reference.cpp",
 		"core/mali_gralloc_debug.cpp",
 		":libgralloc_hidl_common_shared_metadata",

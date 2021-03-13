@@ -37,12 +37,10 @@ namespace graphics {
 /* Android default usages */
 typedef android::hardware::graphics::common::V1_2::BufferUsage BufferUsage;
 
-/* S.LSI specific usages */
 enum VendorGraphicBufferUsage {
+/* S.LSI specific usages */
 	PROTECTED_DPB                   = 1ULL << 28,
 	NO_AFBC                         = 1ULL << 29,
-	CAMERA_RESERVED                 = 1ULL << 30,
-	SECURE_CAMERA_RESERVED          = 1ULL << 31,
 	ROIINFO                         = 1ULL << 52,
 	AFBC_PADDING                    = 1ULL << 53,
 	FORCE_BACKBUFFER                = 1ULL << 54,
@@ -52,8 +50,11 @@ enum VendorGraphicBufferUsage {
 	NOZEROED                        = 1ULL << 58,
 	PRIVATE_NONSECURE               = 1ULL << 59,
 	VIDEO_PRIVATE_DATA              = 1ULL << 60,
-	DAYDREAM_SINGLE_BUFFER_MODE     = 1ULL << 62,
 	YUV_RANGE_FULL                  = 1ULL << 63,
+/* Google-specific usages */
+	CAMERA_STATS                    = 1ULL << 30,
+	TPU_OUTPUT                      = 1ULL << 31,
+	TPU_INPUT                       = 1ULL << 62
 };
 
 

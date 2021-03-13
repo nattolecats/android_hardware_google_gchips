@@ -889,8 +889,8 @@ int mali_gralloc_derive_format_and_size(buffer_descriptor_t * const bufDescripto
 	                                                         bufDescriptor->width * bufDescriptor->height);
 	if (bufDescriptor->alloc_format == MALI_GRALLOC_FORMAT_INTERNAL_UNDEFINED)
 	{
-		MALI_GRALLOC_LOGE("ERROR: Unrecognized and/or unsupported format 0x%" PRIx64 " and usage 0x%" PRIx64,
-		       bufDescriptor->hal_format, usage);
+		MALI_GRALLOC_LOGE("ERROR: Unrecognized and/or unsupported format 0x%" PRIx64 " and usage (%s 0x%" PRIx64 ")",
+		       bufDescriptor->hal_format, describe_usage(usage).c_str(), usage);
 		return -EINVAL;
 	}
 

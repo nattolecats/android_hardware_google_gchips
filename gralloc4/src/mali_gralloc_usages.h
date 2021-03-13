@@ -64,13 +64,10 @@ typedef enum
 
 	/* SLSI specific usages */
 	GRALLOC_USAGE_PROTECTED_DPB                            = GRALLOC_USAGE_PRIVATE_0,
-	GRALLOC_USAGE_CAMERA_RESERVED                          = GRALLOC_USAGE_PRIVATE_2,
-	GRALLOC_USAGE_SECURE_CAMERA_RESERVED                   = GRALLOC_USAGE_PRIVATE_3,
 	GRALLOC_USAGE_PRIVATE_NONSECURE                        = GRALLOC_USAGE_PRIVATE_8,
 	GRALLOC_USAGE_NOZEROED                                 = GRALLOC_USAGE_PRIVATE_9,
 
 	GRALLOC_USAGE_YUV_RANGE_FULL                           = GRALLOC_USAGE_PRIVATE_4,
-	GRALLOC_USAGE_DAYDREAM_SINGLE_BUFFER_MODE              = GRALLOC_USAGE_PRIVATE_5,
 	GRALLOC_USAGE_VIDEO_PRIVATE_DATA                       = GRALLOC_USAGE_PRIVATE_7,
 
 	GRALLOC_USAGE_HFR_MODE                                 = GRALLOC_USAGE_PRIVATE_10,
@@ -82,6 +79,10 @@ typedef enum
 	GRALLOC_USAGE_GOOGLE_IP_BO                             = GRALLOC_USAGE_PRIVATE_16,
 	GRALLOC_USAGE_GOOGLE_IP_MFC                            = GRALLOC_USAGE_PRIVATE_17,
 
+	/* FaceAuth specific usages. */
+	GS101_GRALLOC_USAGE_TPU_INPUT                          = GRALLOC_USAGE_PRIVATE_5,
+	GS101_GRALLOC_USAGE_TPU_OUTPUT                         = GRALLOC_USAGE_PRIVATE_3,
+	GS101_GRALLOC_USAGE_CAMERA_STATS                       = GRALLOC_USAGE_PRIVATE_2,
 } mali_gralloc_usage_type;
 
 #define GRALLOC_USAGE_SW_WRITE_RARELY static_cast<uint64_t>(hidl_common::BufferUsage::CPU_WRITE_RARELY)
@@ -141,6 +142,10 @@ static const uint64_t VALID_USAGE =
     /* Google specific usages */
     GRALLOC_USAGE_GOOGLE_IP_BO |            /* 1U << 51 */
     GRALLOC_USAGE_GOOGLE_IP_MFC |           /* 1U << 50 */
+
+    GS101_GRALLOC_USAGE_TPU_INPUT |         /* 1U << 62 */
+    GS101_GRALLOC_USAGE_TPU_OUTPUT |        /* 1U << 31 */
+    GS101_GRALLOC_USAGE_CAMERA_STATS |      /* 1U << 30 */
 
     GRALLOC_USAGE_ROIINFO |                 /* 1U << 52 */
     MALI_GRALLOC_USAGE_AFBC_PADDING |       /* 1U << 53 */

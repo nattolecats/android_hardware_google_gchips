@@ -36,6 +36,7 @@
  * DPU: Display processor
  * VPU: Video processor
  * CAM: Camera ISP
+ * TPU: ML accelerator
  */
 #define MALI_GRALLOC_PRODUCER_CPU		((uint16_t)1 << 0)
 #define MALI_GRALLOC_PRODUCER_GPU		((uint16_t)1 << 1)
@@ -45,6 +46,7 @@
 #define GOOGLE_GRALLOC_PRODUCER_BO		((uint16_t)1 << 6)
 #define GOOGLE_GRALLOC_PRODUCER_MFC		((uint16_t)1 << 7)
 #define GOOGLE_GRALLOC_PRODUCER_VPUS_MASK	(MALI_GRALLOC_PRODUCER_VPU | GOOGLE_GRALLOC_PRODUCER_BO | GOOGLE_GRALLOC_PRODUCER_MFC)
+#define GOOGLE_GRALLOC_PRODUCER_TPU		((uint16_t)1 << 8)
 
 #define MALI_GRALLOC_CONSUMER_CPU		((uint16_t)1 << 0)
 #define MALI_GRALLOC_CONSUMER_GPU		((uint16_t)1 << 1)
@@ -53,6 +55,7 @@
 #define GOOGLE_GRALLOC_CONSUMER_BO		((uint16_t)1 << 4)
 #define GOOGLE_GRALLOC_CONSUMER_MFC		((uint16_t)1 << 5)
 #define GOOGLE_GRALLOC_CONSUMER_VPUS_MASK	(MALI_GRALLOC_CONSUMER_VPU | GOOGLE_GRALLOC_CONSUMER_BO | GOOGLE_GRALLOC_CONSUMER_MFC)
+#define GOOGLE_GRALLOC_CONSUMER_TPU		((uint16_t)1 << 6)
 
 typedef struct
 {
@@ -100,6 +103,11 @@ static uint16_t get_vpu_consumer(uint64_t usage)
 static uint16_t get_consumers(uint64_t usage)
 {
 	uint16_t consumers = 0;
+
+	if (usage & GS101_GRALLOC_USAGE_TPU_INPUT)
+	{
+		consumers |= GOOGLE_GRALLOC_CONSUMER_TPU;
+	}
 
 	/* Exclude usages also not applicable to consumer derivation */
 	usage &= ~GRALLOC_USAGE_PROTECTED;
@@ -189,6 +197,11 @@ static uint16_t get_producers(uint64_t usage)
 {
 	uint16_t producers = 0;
 
+	if (usage & GS101_GRALLOC_USAGE_TPU_OUTPUT)
+	{
+		producers |= GOOGLE_GRALLOC_PRODUCER_TPU;
+	}
+
 	/* Exclude usages also not applicable to producer derivation */
 	usage &= ~GRALLOC_USAGE_PROTECTED;
 
@@ -224,6 +237,15 @@ static uint16_t get_producers(uint64_t usage)
 	return producers;
 }
 
+static inline bool consumers_use_cpu_caps(uint16_t consumers)
+{
+	return consumers & (MALI_GRALLOC_CONSUMER_CPU | GOOGLE_GRALLOC_CONSUMER_TPU);
+}
+
+static inline bool producers_use_cpu_caps(uint16_t producers)
+{
+	return producers & (MALI_GRALLOC_PRODUCER_CPU | GOOGLE_GRALLOC_PRODUCER_TPU);
+}
 
 /*
  * Determines the intersection of all IP consumers capability sets. Since all
@@ -246,7 +268,7 @@ static uint64_t get_consumer_caps(const uint16_t consumers)
 	/* Consumers can't write */
 	consumer_caps &= ~MALI_GRALLOC_FORMAT_CAPABILITY_AFBC_YUV_WRITE;
 
-	if (consumers & MALI_GRALLOC_CONSUMER_CPU)
+	if (consumers_use_cpu_caps(consumers))
 	{
 		consumer_caps &= cpu_runtime_caps.caps_mask;
 	}
@@ -314,7 +336,7 @@ static uint64_t get_producer_caps(const uint16_t producers)
 	/* Producers can't read */
 	producer_caps &= ~MALI_GRALLOC_FORMAT_CAPABILITY_AFBC_YUV_READ;
 
-	if (producers & MALI_GRALLOC_PRODUCER_CPU)
+	if (producers_use_cpu_caps(producers))
 	{
 		producer_caps &= cpu_runtime_caps.caps_mask;
 	}
@@ -409,9 +431,9 @@ void mali_gralloc_adjust_dimensions(const uint64_t alloc_format,
 		}
 	}
 
-	MALI_GRALLOC_LOGV("%s: alloc_format=0x%" PRIx64 " usage=0x%" PRIx64
-	      " alloc_width=%u, alloc_height=%u",
-	      __FUNCTION__, alloc_format, usage, *width, *height);
+	MALI_GRALLOC_LOGV("%s: alloc_format=0x%" PRIx64 " usage=(%s 0x%" PRIx64
+	      ") alloc_width=%u, alloc_height=%u",
+	      __FUNCTION__, alloc_format, describe_usage(usage).c_str(), usage, *width, *height);
 }
 
 
@@ -433,7 +455,7 @@ static format_support_flags ip_supports_base_format(const uint16_t producers,
 	format_support_flags support = ~0;
 
 	/* Determine producer support for base format. */
-	if (producers & MALI_GRALLOC_PRODUCER_CPU)
+	if (producers_use_cpu_caps(producers))
 	{
 		support &= format->cpu_wr;
 	}
@@ -454,8 +476,8 @@ static format_support_flags ip_supports_base_format(const uint16_t producers,
 		support &= format->vpu_wr;
 	}
 
-	/* Determine producer support for base format. */
-	if (consumers & MALI_GRALLOC_CONSUMER_CPU)
+	/* Determine consumer support for base format. */
+	if (consumers_use_cpu_caps(consumers))
 	{
 		support &= format->cpu_rd;
 	}
@@ -1439,7 +1461,7 @@ uint64_t mali_gralloc_select_format(const uint64_t req_format,
 	/* Reject if usage specified is outside white list of valid usages. */
 	if (type != MALI_GRALLOC_FORMAT_TYPE_INTERNAL && (usage & (~VALID_USAGE)) != 0)
 	{
-		MALI_GRALLOC_LOGE("Invalid usage specified: 0x%" PRIx64, usage);
+		MALI_GRALLOC_LOGE("Invalid usage specified: %s 0x%" PRIx64, describe_usage(usage).c_str(), usage);
 	}
 
 	/* TODO: Make a function for finding formats that should be allocated as the request format */
@@ -1518,9 +1540,9 @@ uint64_t mali_gralloc_select_format(const uint64_t req_format,
 	}
 
 out:
-	MALI_GRALLOC_LOGV("mali_gralloc_select_format: req_format=0x%08" PRIx64 ", usage=0x%" PRIx64
-	      ", req_base_format=0x%" PRIx32 ", alloc_format=0x%" PRIx64,
-	      req_format, usage, req_base_format, alloc_format);
+	MALI_GRALLOC_LOGV("mali_gralloc_select_format: req_format=0x%08" PRIx64 ", usage=(%s 0x%" PRIx64
+	      "), req_base_format=0x%" PRIx32 ", alloc_format=0x%" PRIx64,
+	      req_format, describe_usage(usage).c_str(), usage, req_base_format, alloc_format);
 
 	return alloc_format;
 }

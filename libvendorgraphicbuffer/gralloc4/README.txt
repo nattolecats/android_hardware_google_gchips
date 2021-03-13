@@ -1,19 +1,19 @@
-# ExynosGraphicBuffer
+# VendorGraphicBuffer
 
-libexynosgraphicbuffer abstracts away the gralloc version used by the system.
+libvendorgraphicbuffer abstracts away the gralloc version used by the system.
 So vendor modules that need to allocate/map buffers or look into a gralloc buffer's private_handle
 don't need to depend on a specific version of gralloc or allocator/mapper interfaces.
 
 
-To use libexynosgraphicbuffer add it as a shared library to your module and
-#include <ExynosGraphicBuffer.h>
+To use libvendorgraphicbuffer add it as a shared library to your module and
+#include <VendorGraphicBuffer.h>
 
 Location of header:
-/hardware/samsung_slsi/exynos/include
+/hardware/google/gchips/libvendorgraphicbuffer/include
 
 Location of source code:
-/hardware/samsung_slsi/exynos/gralloc3/libexynosgraphicbuffer
-/hardware/samsung_slsi/exynos/gralloc4/libexynosgraphicbuffer (will be added with gralloc4)
+/hardware/google/gchips/libvendorgraphicbuffer/gralloc3
+/hardware/google/gchips/libvendorgraphicbuffer/gralloc4
 
 
 
@@ -21,12 +21,12 @@ Location of source code:
 
 Standard metadata stored in the handle as value
 
-    ExynosGraphicBufferMeta gmeta;
+    VendorGraphicBufferMeta gmeta;
     gmeta.init(dst_handle);
 
                 or
 
-    ExynosGraphicBufferMeta gmeta(dst_handle);
+    VendorGraphicBufferMeta gmeta(dst_handle);
 
 
     gmeta.fd
@@ -35,13 +35,14 @@ Standard metadata stored in the handle as value
     .....
     etc
 
-    Please refer to ExynosGraphicBufferMeta class to which values are available.
-    Please contact <sy.byeon@samsung.com> if you need access to metadata not preset here!
+    Please refer to VendorGraphicBufferMeta class to which values are available.
+    Please contact the Pixel Graphics System Software team if you need access to
+    metadata not preset here!
 
 
 Dynamic metadata (stored as file descriptor)
 
-  Get them by calling static functions of ExynosGraphicBufferMeta
+  Get them by calling static functions of VendorGraphicBufferMeta
 
 - AFBC:
         static int is_afbc(buffer_handle_t);
@@ -50,7 +51,7 @@ Dynamic metadata (stored as file descriptor)
         Returns 0 if buffer is not compressed.
 
         e.g:
-                ExynosGraphicBufferMeta::is_afbc(handle);
+                VendorGraphicBufferMeta::is_afbc(handle);
 
 - Video MetaData:
         static void* get_video_metadata(buffer_handle_t);
@@ -61,13 +62,13 @@ Dynamic metadata (stored as file descriptor)
         Please DO NOT FREE this address!
 
         e.g:
-            metaData = (ExynosVideoMeta*)ExynosGraphicBufferMeta::get_video_metadata(bufferHandle);
+            metaData = (ExynosVideoMeta*)VendorGraphicBufferMeta::get_video_metadata(bufferHandle);
 
 - Buffer align information (needed by HWC)
 
         static int get_pad_align(buffer_handle_t, pad_align_t *pad_align);
 
-        pad_align_t struct is defined in ExynosGraphicBuffer.h header
+        pad_align_t struct is defined in VendorGraphicBuffer.h header
         and gets filled with short int type.
 
         pad_align->align.w
@@ -78,9 +79,9 @@ Dynamic metadata (stored as file descriptor)
 
 ### How to lock/unlock buffers ###
 
-1) Get a Singleton instance of ExynosGraphicBufferMapper:
+1) Get a Singleton instance of VendorGraphicBufferMapper:
 
-    static ExynosGraphicBufferMapper& gmapper(ExynosGraphicBufferMapper::get());
+    static VendorGraphicBufferMapper& gmapper(VendorGraphicBufferMapper::get());
 
 2) Create Rect object that will be used as input to mapper function (and android_ycbcr object
    if locking YUV buffers)
@@ -92,7 +93,7 @@ Dynamic metadata (stored as file descriptor)
    Android::Rect class is defined in /frameworks/native/libs/ui/include_vndk/ui/Rect.h
    android_ycbcr struct is diefeind in /system/core/libsystem/include/system/graphics.h
 
-   Both headers should get included if you include ExynosGraphicBuffer.h
+   Both headers should get included if you include VendorGraphicBuffer.h
 
 3) lock the buffer:
    To make sure you use 64-bit usages while locking the buffer:
@@ -111,8 +112,8 @@ Dynamic metadata (stored as file descriptor)
 
 ### How to allocate buffers ###
 
-1) Get a Singleton instnace of ExynosGraphicBufferAllocator:
-    ExynosGraphicBufferAllocator& gAllocator(ExynosGraphicBufferAllocator::get());
+1) Get a Singleton instnace of VendorGraphicBufferAllocator:
+    VendorGraphicBufferAllocator& gAllocator(VendorGraphicBufferAllocator::get());
 
 2) Allocate buffer
     status_t error = gAllocator.allocate(width, height, format, layer_count, allocUsage, &dstBuffer, &dstStride, "requestorName");
@@ -132,15 +133,15 @@ New usages names can be accessed by adding the namespace containing them:
 using namespace vendor::graphics
     or
 using vendor::graphics::BufferUsage
-using vendor::graphics::ExynosGraphicBufferUsage
+using vendor::graphics::VendorGraphicBufferUsage
     or directly by
 vendor::graphics::BufferUsage::<USAGE>
-vendor::graphics::ExynosGraphicBufferUsage::<USAGE>
+vendor::graphics::VendorGraphicBufferUsage::<USAGE>
 
 
 *** gralloc1 default usages can still be used ***
-They remain so the users of libexynosgraphicbuffer don't have to change too much code when moving
-over to libexynosgraphicbuffer.
+They remain so the users of libvendorgraphicbuffer don't have to change too much
+code when moving over to libvendorgraphicbuffer.
 But I recommend moving over the Usages declared in
         /hardware/interfaces/graphics/common/1.0/types.hal
 
@@ -151,20 +152,18 @@ But I recommend moving over the Usages declared in
 *** But S.LSI specific usages have been RENAMED ***
 
 /* S.LSI specific usages */
-enum ExynosGraphicBufferUsage {
+enum VendorGraphicBufferUsage {
         PROTECTED_DPB                   = 1ULL << 28,
         NO_AFBC                         = 1ULL << 29,
-        CAMERA_RESERVED                 = 1ULL << 30,
-        SECURE_CAMERA_RESERVED          = 1ULL << 31,
         HFR_MODE                        = 1ULL << 57,
         NOZEROED                        = 1ULL << 58,
         PRIVATE_NONSECURE               = 1ULL << 59,
         VIDEO_PRIVATE_DATA              = 1ULL << 60,
-        DAYDREAM_SINGLE_BUFFER_MODE     = 1ULL << 62,
         YUV_RANGE_FULL                  = 1ULL << 63,
 };
 
-    Instead of using GRALLOC1_PRODUCER_USAGE_CAMERA_RESERVED,
-    plese use ExynosGraphicBufferUsage::CAMERA_RESERVEd.
+    Instead of using GRALLOC1_PRODUCER_USAGE_NO_AFBC,
+    plese use VendorGraphicBufferUsage::NO_AFBC.
 
-This change was force to remove confusion between Android default and Exynos only usages.
+This change was force to remove confusion between Android default and
+vendor-specific usages.

@@ -52,6 +52,7 @@ arm_gralloc_core_cc_defaults {
 	srcs: [
 		"mali_gralloc_bufferaccess.cpp",
 		"mali_gralloc_bufferallocation.cpp",
+		"mali_gralloc_bufferdescriptor.cpp",
 		"mali_gralloc_formats.cpp",
 		"mali_gralloc_reference.cpp",
 		"mali_gralloc_debug.cpp",

@@ -30,6 +30,9 @@ LOCAL_SRC_FILES := ExynosMutex.cpp \
 		   Exynos_log.c
 
 LOCAL_MODULE := libexynosutils
+LOCAL_LICENSE_KINDS := SPDX-license-identifier-Apache-2.0
+LOCAL_LICENSE_CONDITIONS := notice
+LOCAL_NOTICE_FILE := $(LOCAL_PATH)/NOTICE
 
 LOCAL_SRC_FILES += exynos_format_v4l2.c
 LOCAL_C_INCLUDES += \

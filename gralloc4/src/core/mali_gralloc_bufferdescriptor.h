@@ -25,6 +25,8 @@
 
 typedef uint64_t gralloc_buffer_descriptor_t;
 
+std::string describe_usage(uint64_t usage);
+
 /* A buffer_descriptor contains the requested parameters for the buffer
  * as well as the calculated parameters that are passed to the allocator.
  */
@@ -78,7 +80,7 @@ struct buffer_descriptor_t
 	void dump(const std::string &str) const {
 		ALOGI("buffer_descriptor: %s "
 			"wh(%u %u) "
-			"usage_pc(0x%" PRIx64 " 0x%" PRIx64 ") "
+			"usage_pc(%s 0x%" PRIx64 " %s 0x%" PRIx64 ") "
 			"hal_format(0x%" PRIx64 ") "
 			"layer_count(%u) "
 			"format_type(%u) "
@@ -92,7 +94,10 @@ struct buffer_descriptor_t
 			"plane[2](offset %" PRId64 ", idx %u, size %" PRIu64 " byte_stride %u, wh %u %u)"
 			"\n",
 			str.c_str(),
-			width, height, producer_usage, consumer_usage, hal_format,
+			width, height,
+			describe_usage(producer_usage).c_str(), producer_usage,
+			describe_usage(consumer_usage).c_str(), consumer_usage,
+			hal_format,
 			layer_count,
 			format_type,
 			name.c_str(),

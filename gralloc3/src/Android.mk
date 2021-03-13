@@ -260,18 +260,28 @@ LOCAL_MODULE_PATH_64 := $(TARGET_OUT_VENDOR)/lib64
 ifeq ($(shell expr $(GRALLOC_VERSION_MAJOR) \<= 1), 1)
     ifeq ($(TARGET_BOARD_PLATFORM),)
         LOCAL_MODULE := gralloc.default
+        LOCAL_LICENSE_KINDS := SPDX-license-identifier-Apache-2.0
+        LOCAL_LICENSE_CONDITIONS := notice
     else
         LOCAL_MODULE := gralloc.$(TARGET_BOARD_PLATFORM)
+        LOCAL_LICENSE_KINDS := SPDX-license-identifier-Apache-2.0
+        LOCAL_LICENSE_CONDITIONS := notice
     endif
 else ifeq ($(GRALLOC_VERSION_MAJOR), 2)
     ifeq ($(GRALLOC_MAPPER), 1)
         ifeq ($(HIDL_MAPPER_VERSION_SCALED), 200)
             LOCAL_MODULE := android.hardware.graphics.mapper@2.0-impl
+            LOCAL_LICENSE_KINDS := SPDX-license-identifier-Apache-2.0
+            LOCAL_LICENSE_CONDITIONS := notice
         else ifeq ($(HIDL_MAPPER_VERSION_SCALED), 210)
             LOCAL_MODULE := android.hardware.graphics.mapper@2.0-impl-2.1
+            LOCAL_LICENSE_KINDS := SPDX-license-identifier-Apache-2.0
+            LOCAL_LICENSE_CONDITIONS := notice
         endif
     else
         LOCAL_MODULE := android.hardware.graphics.allocator@2.0-impl
+        LOCAL_LICENSE_KINDS := SPDX-license-identifier-Apache-2.0
+        LOCAL_LICENSE_CONDITIONS := notice
     endif
 endif
 
