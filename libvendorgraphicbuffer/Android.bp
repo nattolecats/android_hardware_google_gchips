@@ -23,7 +23,7 @@ soong_config_module_type {
 		"gralloc_version",
 	],
 	properties: [
-		"srcs", "include_dirs", "cflags",
+		"srcs", "include_dirs", "cflags", "shared_libs",
 	],
 }
 
