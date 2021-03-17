@@ -69,6 +69,7 @@ typedef struct
 	bool yuv_transform;             /* Supports AFBC YUV transform: 3+ channel RGB (strict R-G-B-? order) with less than 12-bit per sample. */
 	bool flex;                      /* Linear version of format can be represented as flex. */
 	bool planes_contiguous;         /* True if all planes in format are contiguous in memory.  Has no effect on non-planar formats. */
+	const char *name;               /* Human-readable name. */
 	/* Computes the total number of components in the format. */
 	int total_components() const
 	{
@@ -112,5 +113,7 @@ void get_format_dataspace(uint32_t base_format,
                           int height,
                           android_dataspace_t *dataspace);
 extern bool sanitize_formats(void);
+
+extern const char *format_name(const uint32_t base_format);
 
 #endif
