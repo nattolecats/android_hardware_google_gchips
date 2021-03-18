@@ -454,8 +454,9 @@ Error validateBufferSize(void* buffer,
 
 	if (gralloc_buffer->alloc_format != grallocDescriptor.alloc_format)
 	{
-		MALI_GRALLOC_LOGE("Buffer alloc format :0x%" PRIx64" does not match descriptor (derived) alloc format :0x%"
-		      PRIx64, gralloc_buffer->alloc_format, grallocDescriptor.alloc_format);
+		MALI_GRALLOC_LOGE("Buffer alloc format: (%s, 0x%" PRIx64") does not match descriptor (derived) alloc format: (%s 0x%"
+			PRIx64 ")", format_name(gralloc_buffer->alloc_format), gralloc_buffer->alloc_format,
+			format_name(grallocDescriptor.alloc_format), grallocDescriptor.alloc_format);
 		return Error::BAD_VALUE;
 	}
 

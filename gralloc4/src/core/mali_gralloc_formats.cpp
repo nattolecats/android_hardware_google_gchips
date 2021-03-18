@@ -431,9 +431,10 @@ void mali_gralloc_adjust_dimensions(const uint64_t alloc_format,
 		}
 	}
 
-	MALI_GRALLOC_LOGV("%s: alloc_format=0x%" PRIx64 " usage=(%s 0x%" PRIx64
-	      ") alloc_width=%u, alloc_height=%u",
-	      __FUNCTION__, alloc_format, describe_usage(usage).c_str(), usage, *width, *height);
+	MALI_GRALLOC_LOGV("%s: alloc_format=(%s 0x%" PRIx64 ") usage=(%s 0x%" PRIx64
+		") alloc_width=%u, alloc_height=%u",
+		__FUNCTION__, format_name(alloc_format), alloc_format, describe_usage(usage).c_str(),
+		usage, *width, *height);
 }
 
 
@@ -1038,7 +1039,8 @@ bool get_supported_format(const uint32_t base_format,
 		                                             producer_active_caps,
 		                                             consumer_active_caps);
 
-		MALI_GRALLOC_LOGV("AFBC format: 0x%" PRIx64, afbc_format);
+		MALI_GRALLOC_LOGV("AFBC format: (%s 0x%" PRIx64 ")",
+			format_name(afbc_format), afbc_format);
 
 		/* Disable AFBC when forced by usage or no format modifiers selected. */
 		if ((usage & MALI_GRALLOC_USAGE_NO_AFBC) == MALI_GRALLOC_USAGE_NO_AFBC ||
@@ -1066,7 +1068,8 @@ bool get_supported_format(const uint32_t base_format,
 		fmt_supported->format_ext = 0;
 	}
 
-	MALI_GRALLOC_LOGV("Ext format: 0x%" PRIx64, fmt_supported->format_ext);
+	MALI_GRALLOC_LOGV("Ext format: (%s 0x%" PRIx64 ")", format_name(fmt_supported->format_ext),
+		fmt_supported->format_ext);
 
 	return (fmt_supported->f_flags == F_NONE) ? false : true;
 }
@@ -1228,7 +1231,8 @@ static uint64_t get_best_format(const uint32_t req_base_format,
 
 	assert(req_base_format != MALI_GRALLOC_FORMAT_INTERNAL_UNDEFINED);
 	const int32_t req_fmt_idx = get_format_index(req_base_format);
-	MALI_GRALLOC_LOGV("req_base_format: 0x%" PRIx32, req_base_format);
+	MALI_GRALLOC_LOGV("req_base_format: (%s 0x%" PRIx32 ")",
+		format_name(req_base_format), req_base_format);
 	MALI_GRALLOC_LOGV("req_fmt_idx: %d", req_fmt_idx);
 	assert(req_fmt_idx >= 0);
 
@@ -1240,7 +1244,8 @@ static uint64_t get_best_format(const uint32_t req_base_format,
 		{
 			fmt_props fmt = {0, 0, 0};
 			fmt.base_format = formats[i].id;
-			MALI_GRALLOC_LOGV("Compatible: Base-format: 0x%" PRIx32, fmt.base_format);
+			MALI_GRALLOC_LOGV("Compatible: Base-format: (%s 0x%" PRIx32 ")",
+				format_name(fmt.base_format), fmt.base_format);
 			f_compat.push_back(fmt);
 		}
 	}
@@ -1273,8 +1278,8 @@ static uint64_t get_best_format(const uint32_t req_base_format,
 			if (sup_fmt_grade)
 			{
 				num_supported_formats++;
-				MALI_GRALLOC_LOGV("Supported: Base-format: 0x%" PRIx32 ", Modifiers: 0x%" PRIx64 ", Flags: 0x%" PRIx16,
-					fmt.base_format, fmt.format_ext, fmt.f_flags);
+				MALI_GRALLOC_LOGV("Supported: Base-format: (%s 0x%" PRIx32 "), Modifiers: 0x%" PRIx64 ", Flags: 0x%" PRIx16,
+			      format_name(fmt.base_format), fmt.base_format, fmt.format_ext, fmt.f_flags);
 
 				/* 3. Find best modifiers from supported base formats */
 				if (sup_fmt_grade > best_fmt_grade)
@@ -1311,7 +1316,8 @@ static uint64_t get_best_format(const uint32_t req_base_format,
 		}
 	}
 
-	MALI_GRALLOC_LOGV("Selected format: 0x%" PRIx64, alloc_format);
+	MALI_GRALLOC_LOGV("Selected format: (%s 0x%" PRIx64 ")",
+		format_name(alloc_format), alloc_format);
 	return alloc_format;
 }
 
@@ -1400,10 +1406,6 @@ uint32_t get_base_format(const uint64_t req_format,
 		if (usage & (GRALLOC_USAGE_HW_VIDEO_ENCODER | GRALLOC_USAGE_HW_VIDEO_DECODER))
 		{
 			base_format = HAL_PIXEL_FORMAT_EXYNOS_YCbCr_420_SP_M;
-			if (usage & (GRALLOC_USAGE_SBWC_REQUEST_10BIT))
-			{
-				base_format = HAL_PIXEL_FORMAT_EXYNOS_YCbCr_P010_M;
-			}
 		}
 		else if (usage & (GRALLOC_USAGE_HW_RENDER | GRALLOC_USAGE_HW_TEXTURE))
 		{
@@ -1452,9 +1454,9 @@ uint64_t mali_gralloc_select_format(const uint64_t req_format,
 	if (req_base_format == MALI_GRALLOC_FORMAT_INTERNAL_UNDEFINED ||
 	    req_fmt_idx == -1)
 	{
-		MALI_GRALLOC_LOGE("Invalid base format! req_base_format = 0x%" PRIx32
-		      ", req_format = 0x%" PRIx64 ", type = 0x%" PRIx32,
-		      req_base_format, req_format, type);
+		MALI_GRALLOC_LOGE("Invalid base format! req_base_format = (%s 0x%" PRIx32
+			"), req_format = (%s 0x%" PRIx64 "), type = 0x%" PRIx32,
+			format_name(req_base_format), req_base_format, format_name(req_format), req_format, type);
 		goto out;
 	}
 
@@ -1540,9 +1542,10 @@ uint64_t mali_gralloc_select_format(const uint64_t req_format,
 	}
 
 out:
-	MALI_GRALLOC_LOGV("mali_gralloc_select_format: req_format=0x%08" PRIx64 ", usage=(%s 0x%" PRIx64
-	      "), req_base_format=0x%" PRIx32 ", alloc_format=0x%" PRIx64,
-	      req_format, describe_usage(usage).c_str(), usage, req_base_format, alloc_format);
+	MALI_GRALLOC_LOGV("%s: req_format=(%s 0x%08" PRIx64 "), usage=(%s 0x%" PRIx64
+	      "), req_base_format=(%s 0x%" PRIx32 "), alloc_format=(%s, 0x%" PRIx64 ")", __func__,
+	      format_name(req_format), req_format, describe_usage(usage).c_str(), usage,
+		  format_name(req_base_format), req_base_format, format_name(alloc_format), alloc_format);
 
 	return alloc_format;
 }

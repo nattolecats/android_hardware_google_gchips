@@ -227,7 +227,8 @@ int mali_gralloc_lock(buffer_handle_t buffer,
 	const int32_t format_idx = get_format_index(hnd->alloc_format & MALI_GRALLOC_INTFMT_FMT_MASK);
 	if (format_idx == -1)
 	{
-		MALI_GRALLOC_LOGE("Corrupted buffer format 0x%" PRIx64 " of buffer %p", hnd->alloc_format, hnd);
+		MALI_GRALLOC_LOGE("Corrupted buffer format (%s 0x%" PRIx64 ") of buffer %p",
+			format_name(hnd->alloc_format), hnd->alloc_format, hnd);
 		return -EINVAL;
 	}
 

@@ -155,7 +155,6 @@ But I recommend moving over the Usages declared in
 enum VendorGraphicBufferUsage {
         PROTECTED_DPB                   = 1ULL << 28,
         NO_AFBC                         = 1ULL << 29,
-        HFR_MODE                        = 1ULL << 57,
         NOZEROED                        = 1ULL << 58,
         PRIVATE_NONSECURE               = 1ULL << 59,
         VIDEO_PRIVATE_DATA              = 1ULL << 60,

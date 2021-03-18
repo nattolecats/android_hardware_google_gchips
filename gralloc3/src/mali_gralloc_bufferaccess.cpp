@@ -941,11 +941,6 @@ static int get_flexlayout_exynos_formats_only (int base_format, uint64_t usage,
 		return -1;
 	}
 
-	if (hnd->flags & private_handle_t::PRIV_FLAGS_USES_HFR_MODE)
-	{
-		ycbcr.y = ycbcr.cb = ycbcr.cr = 0;
-	}
-
 	flex_layout->format = FLEX_FORMAT_YCbCr;
 	flex_layout->num_planes = 3;
 	for (uint32_t i = 0; i < flex_layout->num_planes; i++) {

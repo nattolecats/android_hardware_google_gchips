@@ -45,8 +45,6 @@ enum VendorGraphicBufferUsage {
 	AFBC_PADDING                    = 1ULL << 53,
 	FORCE_BACKBUFFER                = 1ULL << 54,
 	FRONTBUFFER                     = 1ULL << 55,
-	SBWC_REQUEST_10BIT              = 1ULL << 56,
-	HFR_MODE                        = 1ULL << 57,
 	NOZEROED                        = 1ULL << 58,
 	PRIVATE_NONSECURE               = 1ULL << 59,
 	VIDEO_PRIVATE_DATA              = 1ULL << 60,

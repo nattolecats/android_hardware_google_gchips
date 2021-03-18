@@ -146,7 +146,6 @@ struct private_handle_t
 		PRIV_FLAGS_USES_ION_DMA_HEAP      = 1U << 3,
 		PRIV_FLAGS_USES_2PRIVATE_DATA     = 1U << 4,
 		PRIV_FLAGS_USES_3PRIVATE_DATA     = 1U << 5,
-		PRIV_FLAGS_USES_HFR_MODE          = 1U << 6,
 	};
 
 	enum

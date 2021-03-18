@@ -87,11 +87,6 @@ static void set_ion_flags(enum ion_heap_type heap_type, uint64_t usage,
 	GRALLOC_UNUSED(heap_type);
 #endif
 
-	if (usage & GRALLOC1_PRODUCER_USAGE_HFR_MODE)
-	{
-		*priv_heap_flag = private_handle_t::PRIV_FLAGS_USES_HFR_MODE;
-	}
-
 	if (priv_heap_flag)
 	{
 #if GRALLOC_USE_ION_DMA_HEAP
@@ -257,7 +252,7 @@ static int gralloc_map(buffer_handle_t handle)
 	}
 
 	// AFBC must not be mapped.
-	if (hnd->is_compressible || hnd->flags & private_handle_t::PRIV_FLAGS_USES_HFR_MODE)
+	if (hnd->is_compressible)
 	{
 		return 1;
 	}
@@ -266,12 +261,6 @@ static int gralloc_map(buffer_handle_t handle)
 	if ((hnd->producer_usage & GRALLOC1_PRODUCER_USAGE_PROTECTED && !(hnd->consumer_usage & GRALLOC1_PRODUCER_USAGE_PRIVATE_NONSECURE)))
 	{
 		return 2;
-	}
-
-	// HFR mode cannot be mapped
-	if (hnd->flags & private_handle_t::PRIV_FLAGS_USES_HFR_MODE)
-	{
-		return 3;
 	}
 
 	if (!(hnd->producer_usage &
@@ -865,67 +854,6 @@ err:
 }
 
 
-static inline int createBufferContainer(int *fd, int size, int *containerFd)
-{
-	int bufferContainerFd = -1;
-
-	if (fd == NULL || size < 1 || containerFd == NULL)
-	{
-		AERR("invalid parameters. fd(%p), size(%d), containerFd(%p)\n", fd, size, containerFd);
-		return -EINVAL;
-	}
-
-	bufferContainerFd = dma_buf_merge(fd[0], fd + 1, size - 1);
-	if (bufferContainerFd < 0)
-	{
-		AERR("fail to create Buffer Container. containerFd(%d), size(%d)", bufferContainerFd, size);
-		return -EINVAL;
-	}
-
-	*containerFd = bufferContainerFd;
-
-	return 0;
-}
-
-static int allocate_to_container(buffer_descriptor_t *bufDescriptor, enum ion_heap_type heap_type,
-		uint32_t ion_flags, uint32_t *priv_heap_flag, int *min_pgsz, int fd_arr[])
-{
-	const int layer_count = GRALLOC_HFR_BATCH_SIZE;
-	int hfr_fds[3][layer_count];
-	int err = 0;
-
-	memset(hfr_fds, 0xff, sizeof(hfr_fds));
-
-	for (int layer = 0; layer < layer_count; layer++)
-	{
-		err = allocate_to_fds(bufDescriptor, heap_type, ion_flags, priv_heap_flag, min_pgsz,
-					&hfr_fds[0][layer], &hfr_fds[1][layer], &hfr_fds[2][layer]);
-		if(err)
-			goto finish;
-	}
-
-	for (int i = 0; i < bufDescriptor->fd_count; i++)
-	{
-		err = createBufferContainer(hfr_fds[i], layer_count, &fd_arr[i]);
-		if (err)
-		{
-			for (int j = 0; j < i; j++)
-				close(fd_arr[j]);
-
-			goto finish;
-		}
-	}
-
-finish:
-	/* free single fds to make ref count to 1 */
-	for (int i = 0; i < 3; i++)
-		for (int j = 0; j < layer_count; j++)
-			if (hfr_fds[i][j] >= 0) close(hfr_fds[i][j]);
-
-	return err;
-}
-
-
 /*
  *  Allocates ION buffers
  *
@@ -1097,26 +1025,14 @@ int mali_gralloc_ion_allocate(const gralloc_buffer_descriptor_t *descriptors,
 
 			set_ion_flags(heap_type, usage, &priv_heap_flag, &ion_flags);
 
-			if (~usage & GRALLOC1_PRODUCER_USAGE_HFR_MODE)
+			if (allocate_to_fds(bufDescriptor, heap_type, ion_flags, &priv_heap_flag, &min_pgsz,
+				&fd_arr[0], &fd_arr[1], &fd_arr[2], ion_fd) < 0)
 			{
-				if (allocate_to_fds(bufDescriptor, heap_type, ion_flags, &priv_heap_flag, &min_pgsz,
-					&fd_arr[0], &fd_arr[1], &fd_arr[2], ion_fd) < 0)
-				{
-					AERR("ion_alloc failed from client ( %d )", ion_client);
+				AERR("ion_alloc failed from client ( %d )", ion_client);
 
-					/* need to free already allocated memory. not just this one */
-					mali_gralloc_ion_free_internal(pHandle, numDescriptors);
-					return -1;
-				}
-			}
-			else
-			{
-				if (0 > allocate_to_container(bufDescriptor, heap_type, ion_flags, &priv_heap_flag, &min_pgsz, fd_arr))
-				{
-					AERR("allocate to container failed from client ( %d )", ion_client);
-					mali_gralloc_ion_free_internal(pHandle, numDescriptors);
-					return -1;
-				}
+				/* need to free already allocated memory. not just this one */
+				mali_gralloc_ion_free_internal(pHandle, numDescriptors);
+				return -1;
 			}
 
 			if (bufDescriptor->alloc_format & MALI_GRALLOC_INTFMT_AFBC_BASIC)

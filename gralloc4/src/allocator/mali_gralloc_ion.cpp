@@ -41,6 +41,7 @@
 #include "gralloc_helper.h"
 #include "mali_gralloc_formats.h"
 #include "mali_gralloc_usages.h"
+#include "core/format_info.h"
 #include "core/mali_gralloc_bufferdescriptor.h"
 #include "core/mali_gralloc_bufferallocation.h"
 
@@ -495,91 +496,6 @@ int mali_gralloc_ion_allocate_attr(private_handle_t *hnd)
 	return 0;
 }
 
-static inline int createBufferContainer(int *fd, int size, int *containerFd)
-{
-	int bufferContainerFd = -1;
-
-	if (fd == NULL || size < 1 || containerFd == NULL)
-	{
-		MALI_GRALLOC_LOGE("invalid parameters. fd(%p), size(%d), containerFd(%p)",
-				fd, size, containerFd);
-		return -EINVAL;
-	}
-
-	bufferContainerFd = dma_buf_merge(fd[0], fd + 1, size - 1);
-	if (bufferContainerFd < 0)
-	{
-		MALI_GRALLOC_LOGE("fail to create Buffer Container. containerFd(%d), size(%d)",
-				bufferContainerFd, size);
-		return -EINVAL;
-	}
-
-	*containerFd = bufferContainerFd;
-
-	return 0;
-}
-
-static int allocate_to_container(buffer_descriptor_t *bufDescriptor, uint32_t ion_flags,
-		int *min_pgsz, int fd_arr[])
-{
-	/* TODO: make batch size as BoardConfig option */
-#define GRALLOC_HFR_BATCH_SIZE 8
-	const int layer_count = GRALLOC_HFR_BATCH_SIZE;
-	int hfr_fds[3][layer_count];
-	int err = 0;
-	int64_t usage = bufDescriptor->consumer_usage | bufDescriptor->producer_usage;
-
-	ion_device *dev = ion_device::get();
-	if (!dev)
-	{
-		return -1;
-	}
-
-	memset(hfr_fds, 0xff, sizeof(hfr_fds));
-
-	for (int layer = 0; layer < layer_count; layer++)
-	{
-		for (int fidx = 0; fidx < bufDescriptor->fd_count; fidx++)
-		{
-			hfr_fds[fidx][layer] =dev->alloc_from_ion_heap(usage,
-					bufDescriptor->alloc_sizes[fidx], ion_flags, min_pgsz);
-
-			if (hfr_fds[fidx][layer] < 0)
-			{
-				MALI_GRALLOC_LOGE("ion_alloc failed from client ( %d )", dev->client());
-				goto finish;
-			}
-		}
-	}
-
-
-	for (int fidx = 0; fidx < bufDescriptor->fd_count; fidx++)
-	{
-		err = createBufferContainer(hfr_fds[fidx], layer_count, &fd_arr[fidx]);
-		if (err)
-		{
-			for (int i = 0; i < fidx; i++)
-			{
-				if (fd_arr[i] >= 0)
-				{
-					close(fd_arr[i]);
-					fd_arr[i] = -1;
-				}
-			}
-
-			goto finish;
-		}
-	}
-
-finish:
-	/* free single fds to make ref count to 1 */
-	for (int i = 0; i < 3; i++)
-		for (int j = 0; j < layer_count; j++)
-			if (hfr_fds[i][j] >= 0) close(hfr_fds[i][j]);
-
-	return err;
-}
-
 /*
  *  Allocates ION buffers
  *
@@ -618,40 +534,26 @@ int mali_gralloc_ion_allocate(const gralloc_buffer_descriptor_t *descriptors,
 		ion_flags = 0;
 		set_ion_flags(usage, &ion_flags);
 
-		if (usage & GRALLOC_USAGE_HFR_MODE)
+		for (int fidx = 0; fidx < bufDescriptor->fd_count; fidx++)
 		{
-			priv_heap_flag |= private_handle_t::PRIV_FLAGS_USES_HFR_MODE;
-
-			if (0 > allocate_to_container(bufDescriptor, ion_flags, &min_pgsz, fds))
-			{
-				MALI_GRALLOC_LOGE("allocate to container failed");
-				mali_gralloc_ion_free_internal(pHandle, numDescriptors);
-				return -1;
+			if (ion_fd >= 0 && fidx == 0) {
+				fds[fidx] = ion_fd;
+			} else {
+				fds[fidx] = dev->alloc_from_ion_heap(usage, bufDescriptor->alloc_sizes[fidx], ion_flags, &min_pgsz);
 			}
-		}
-		else
-		{
-			for (int fidx = 0; fidx < bufDescriptor->fd_count; fidx++)
+			if (fds[fidx] < 0)
 			{
-				if (ion_fd >= 0 && fidx == 0) {
-					fds[fidx] = ion_fd;
-				} else {
-					fds[fidx] = dev->alloc_from_ion_heap(usage, bufDescriptor->alloc_sizes[fidx], ion_flags, &min_pgsz);
-				}
-				if (fds[fidx] < 0)
+				MALI_GRALLOC_LOGE("ion_alloc failed from client ( %d )", dev->client());
+
+				for (int cidx = 0; cidx < fidx; cidx++)
 				{
-					MALI_GRALLOC_LOGE("ion_alloc failed from client ( %d )", dev->client());
-
-					for (int cidx = 0; cidx < fidx; cidx++)
-					{
-						close(fds[cidx]);
-					}
-
-					/* need to free already allocated memory. not just this one */
-					mali_gralloc_ion_free_internal(pHandle, numDescriptors);
-
-					return -1;
+					close(fds[cidx]);
 				}
+
+				/* need to free already allocated memory. not just this one */
+				mali_gralloc_ion_free_internal(pHandle, numDescriptors);
+
+				return -1;
 			}
 		}
 
@@ -740,12 +642,6 @@ int mali_gralloc_ion_map(private_handle_t *hnd)
 		return 0;
 	}
 
-	/* Do not allow cpu access to HFR buffers */
-	if (hnd->flags & private_handle_t::PRIV_FLAGS_USES_HFR_MODE)
-	{
-		return 0;
-	}
-
 	for (int fidx = 0; fidx < hnd->fd_count; fidx++) {
 		unsigned char *mappedAddress =
 			(unsigned char *)mmap(NULL, hnd->alloc_sizes[fidx], PROT_READ | PROT_WRITE,
@@ -785,8 +681,8 @@ int import_exynos_ion_handles(private_handle_t *hnd)
 			retval = exynos_ion_import_handle(dev->client(), hnd->fds[idx], &hnd->ion_handles[idx]);
 			if (retval)
 			{
-				MALI_GRALLOC_LOGE("error importing ion_handle. ion_client(%d), ion_handle[%d](%d) format(%#" PRIx64 ")",
-				     dev->client(), idx, hnd->ion_handles[idx], hnd->alloc_format);
+				MALI_GRALLOC_LOGE("error importing ion_handle. ion_client(%d), ion_handle[%d](%d) format(%s %#" PRIx64 ")",
+				     dev->client(), idx, hnd->ion_handles[idx], format_name(hnd->alloc_format), hnd->alloc_format);
 				goto error;
 			}
 		}
@@ -817,8 +713,8 @@ void free_exynos_ion_handles(private_handle_t *hnd)
 			if (hnd->ion_handles[idx] &&
 			    exynos_ion_free_handle(dev->client(), hnd->ion_handles[idx]))
 			{
-				MALI_GRALLOC_LOGE("error freeing ion_handle. ion_client(%d), ion_handle[%d](%d) format(%#" PRIx64 ")",
-				     dev->client(), idx, hnd->ion_handles[idx], hnd->alloc_format);
+				MALI_GRALLOC_LOGE("error freeing ion_handle. ion_client(%d), ion_handle[%d](%d) format(%s %#" PRIx64 ")",
+					dev->client(), idx, hnd->ion_handles[idx], format_name(hnd->alloc_format), hnd->alloc_format);
 			}
 		}
 	}

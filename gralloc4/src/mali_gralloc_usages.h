@@ -70,9 +70,6 @@ typedef enum
 	GRALLOC_USAGE_YUV_RANGE_FULL                           = GRALLOC_USAGE_PRIVATE_4,
 	GRALLOC_USAGE_VIDEO_PRIVATE_DATA                       = GRALLOC_USAGE_PRIVATE_7,
 
-	GRALLOC_USAGE_HFR_MODE                                 = GRALLOC_USAGE_PRIVATE_10,
-	GRALLOC_USAGE_SBWC_REQUEST_10BIT                       = GRALLOC_USAGE_PRIVATE_11,
-
 	GRALLOC_USAGE_ROIINFO                                  = GRALLOC_USAGE_PRIVATE_15,
 
 	/* Google specific usages */
@@ -150,7 +147,6 @@ static const uint64_t VALID_USAGE =
     GRALLOC_USAGE_ROIINFO |                 /* 1U << 52 */
     MALI_GRALLOC_USAGE_AFBC_PADDING |       /* 1U << 53 */
     MALI_GRALLOC_USAGE_FORCE_BACKBUFFER |   /* 1U << 54 */
-    GRALLOC_USAGE_SBWC_REQUEST_10BIT |      /* 1U << 56 */
     GRALLOC_USAGE_PROTECTED_DPB |           /* 1U << 28 */
     MALI_GRALLOC_USAGE_NO_AFBC |            /* 1U << 29 */
     0;
