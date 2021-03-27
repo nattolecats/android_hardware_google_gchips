@@ -15,6 +15,10 @@
  * limitations under the License.
  */
 
+package {
+    default_applicable_licenses: ["Android-Apache-2.0"],
+}
+
 soong_config_module_type {
 	name: "vendorgraphicbuffer_cc_defaults",
 	module_type: "cc_defaults",

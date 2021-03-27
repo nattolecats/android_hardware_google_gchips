@@ -15,6 +15,10 @@
  * limitations under the License.
  */
 
+package {
+    default_applicable_licenses: ["Android-Apache-2.0"],
+}
+
 aidl_interface {
     name: "arm.graphics",
     host_supported: true,

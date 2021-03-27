@@ -55,6 +55,31 @@
 #define SBWCL_8B_CBCR_BASE(base, w, h, r)	((base) + SBWCL_8B_Y_SIZE(w, h, r))
 #define SBWCL_10B_CBCR_BASE(base, w, h, r)	((base) + SBWCL_10B_Y_SIZE(w, h, r))
 
+/*
+ * Compute SBWC buffer geometry for a buffer containing packed SBWC YUV data
+ * with bits per pixel bpp, width w, and height h.
+ * Returns a pair of { luma size, chroma size }.
+ */
+template <int bpp>
+static std::pair<size_t, size_t> sbwc_sizes(int w, int h) {
+	static_assert(bpp == 8 || bpp == 10, "Unexpected bit width");
+
+	const size_t luma_body_size = (bpp == 8) ?
+		SBWC_8B_Y_SIZE(w, h) : SBWC_10B_Y_SIZE(w, h);
+	const size_t luma_header_size = (bpp == 8) ?
+		SBWC_8B_Y_HEADER_SIZE(w, h) : SBWC_10B_Y_HEADER_SIZE(w, h);
+
+	const size_t chroma_body_size = (bpp == 8) ?
+		SBWC_8B_CBCR_SIZE(w, h) : SBWC_10B_CBCR_SIZE(w, h);
+	const size_t chroma_header_size = (bpp == 8) ?
+		SBWC_8B_CBCR_HEADER_SIZE(w, h) : SBWC_10B_CBCR_HEADER_SIZE(w, h);
+
+	MALI_GRALLOC_LOGV("SBWC luma body size 0x%zx, header size 0x%zx", luma_body_size, luma_header_size);
+	MALI_GRALLOC_LOGV("SBWC chroma body size 0x%zx, header size 0x%zx", chroma_body_size, chroma_header_size);
+
+	return { luma_body_size + luma_header_size,
+	         chroma_body_size + chroma_header_size };
+}
 
 /*
  * All setup_<format> function will returns the plane_count
@@ -63,13 +88,13 @@
 /* Sets up 8-bit SBWC semi planar and returns the plane count */
 int setup_sbwc_420_sp(int w, int h, int fd_count, plane_info_t *plane)
 {
-	plane[0].size = SBWC_8B_Y_SIZE(w, h) + SBWC_8B_Y_HEADER_SIZE(w, h);
+	std::tie(plane[0].size, plane[1].size) = sbwc_sizes<8>(w, h);
+
 	plane[0].alloc_width = GRALLOC_ALIGN(w, 32);
 	plane[0].alloc_height = __ALIGN_UP(h, 16);
 	plane[0].byte_stride = SBWC_8B_STRIDE(w);
 	plane[0].fd_idx = 0;
 
-	plane[1].size = SBWC_8B_CBCR_SIZE(w, h) + SBWC_8B_CBCR_HEADER_SIZE(w, h);
 	plane[1].alloc_width = GRALLOC_ALIGN(w, 32);
 	plane[1].alloc_height = __ALIGN_UP(h, 16) / 2;
 	plane[1].byte_stride = SBWC_8B_STRIDE(w);
@@ -90,13 +115,13 @@ int setup_sbwc_420_sp(int w, int h, int fd_count, plane_info_t *plane)
 /* Sets up 10-bit SBWC semi planar and returns the plane count */
 int setup_sbwc_420_sp_10bit(int w, int h, int fd_count, plane_info_t *plane)
 {
-	plane[0].size = (SBWC_10B_Y_SIZE(w, h) + SBWC_10B_Y_HEADER_SIZE(w, h));
+	std::tie(plane[0].size, plane[1].size) = sbwc_sizes<10>(w, h);
+
 	plane[0].alloc_width = GRALLOC_ALIGN(w, 32);
 	plane[0].alloc_height = __ALIGN_UP(h, 16);
 	plane[0].byte_stride = SBWC_10B_STRIDE(w);
 	plane[0].fd_idx = 0;
 
-	plane[1].size = (SBWC_10B_CBCR_SIZE(w, h) + SBWC_10B_CBCR_HEADER_SIZE(w, h));
 	plane[1].alloc_width = GRALLOC_ALIGN(w, 32);
 	plane[1].alloc_height = __ALIGN_UP(h, 16) / 2;
 	plane[1].byte_stride = SBWC_10B_STRIDE(w);
