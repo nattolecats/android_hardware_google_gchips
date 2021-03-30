@@ -43,8 +43,8 @@ arm_gralloc_core_cc_defaults {
 	cflags: [
 		/* Minimum buffer dimensions in pixels when buffer will use AFBC */
 		/* TODO: set this via BoardConfig */
-		"-DGRALLOC_DISP_W=1920",
-		"-DGRALLOC_DISP_H=1080",
+		"-DGRALLOC_DISP_W=0",
+		"-DGRALLOC_DISP_H=0",
 	],
 	soong_config_variables: {
 		gralloc_ion_sync_on_lock: {

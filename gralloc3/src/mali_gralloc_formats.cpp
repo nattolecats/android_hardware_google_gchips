@@ -1009,10 +1009,16 @@ static uint64_t get_afbc_format(const uint32_t base_format,
 
 			/*
 			 * Specific producer/consumer combinations benefit from additional
-			 * AFBC features (e.g. GPU --> DPU).
+			 * AFBC features (e.g. * --> GPU).
 			 */
 			if (consumer & MALI_GRALLOC_CONSUMER_GPU)
 			{
+				if (producer_caps & MALI_GRALLOC_FORMAT_CAPABILITY_AFBC_SPLITBLK &&
+				    consumer_caps & MALI_GRALLOC_FORMAT_CAPABILITY_AFBC_SPLITBLK)
+				{
+					alloc_format |= MALI_GRALLOC_INTFMT_AFBC_SPLITBLK;
+				}
+
 				/*
 				 * NOTE: assume that all AFBC layers are pre-rotated. 16x16 SB
 				 * must be used with DPU consumer when rotation is required.
@@ -1055,13 +1061,48 @@ static void get_active_caps(const format_info_t format,
                             uint64_t * const consumer_active_caps,
                             const int buffer_size)
 {
+	const uint64_t producer_caps = (producer_active_caps) ? *producer_active_caps : 0;
+	const uint64_t consumer_caps = (consumer_active_caps) ? *consumer_active_caps : 0;
 	uint64_t producer_mask = ~0;
 	uint64_t consumer_mask = ~0;
+
+	if (format.is_yuv)
+	{
+		if ((producer_caps & MALI_GRALLOC_FORMAT_CAPABILITY_AFBC_YUV_WRITE) == 0)
+		{
+			producer_mask &= ~MALI_GRALLOC_FORMAT_CAPABILITY_AFBCENABLE_MASK;
+		}
+		else if (producers & MALI_GRALLOC_PRODUCER_GPU)
+		{
+			/* All GPUs that can write YUV AFBC can only do it in 16x16,
+			 * optionally with tiled headers.
+			 */
+			producer_mask &=
+				~(MALI_GRALLOC_FORMAT_CAPABILITY_AFBC_SPLITBLK |
+				  MALI_GRALLOC_FORMAT_CAPABILITY_AFBC_WIDEBLK);
+		}
+
+		if ((consumer_caps & MALI_GRALLOC_FORMAT_CAPABILITY_AFBC_YUV_READ) == 0)
+		{
+			consumer_mask &= ~MALI_GRALLOC_FORMAT_CAPABILITY_AFBCENABLE_MASK;
+		}
+	}
+
+	// TODO: b/183385318 Prefer 16x16 AFBC over 32x8 for GPU --> GPU
+	if ((producers & MALI_GRALLOC_PRODUCER_GPU) &&
+	    (consumers & MALI_GRALLOC_CONSUMER_GPU) &&
+            (producer_caps & consumer_caps & MALI_GRALLOC_FORMAT_CAPABILITY_AFBC_BASIC))
+	{
+		producer_mask &=
+			~(MALI_GRALLOC_FORMAT_CAPABILITY_AFBC_SPLITBLK |
+			  MALI_GRALLOC_FORMAT_CAPABILITY_AFBC_WIDEBLK);
+
+		consumer_mask &=
+			~(MALI_GRALLOC_FORMAT_CAPABILITY_AFBC_SPLITBLK |
+			  MALI_GRALLOC_FORMAT_CAPABILITY_AFBC_WIDEBLK);
+	}
+
 	bool afbc_allowed = false;
-
-        GRALLOC_UNUSED(format);
-	GRALLOC_UNUSED(producers);
-
 	afbc_allowed = buffer_size > (192 * 192);
 
 #if GRALLOC_DISP_W != 0 && GRALLOC_DISP_H != 0
@@ -1070,8 +1111,6 @@ static void get_active_caps(const format_info_t format,
 		/* Disable AFBC based on buffer dimensions */
 		afbc_allowed = afbc_allowed && ((buffer_size * 100) / (GRALLOC_DISP_W * GRALLOC_DISP_H)) >= GRALLOC_AFBC_MIN_SIZE;
 	}
-#else
-	GRALLOC_UNUSED(consumers);
 #endif
 	if (!afbc_allowed)
 	{

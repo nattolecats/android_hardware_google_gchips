@@ -72,7 +72,7 @@ void get_ip_capabilities(void)
 	gpu_runtime_caps.caps_mask |= MALI_GRALLOC_FORMAT_CAPABILITY_PIXFMT_RGBA1010102;
 	gpu_runtime_caps.caps_mask |= MALI_GRALLOC_FORMAT_CAPABILITY_PIXFMT_RGBA16161616;
 
-#if defined(MALI_GPU_SUPPORT_AFBC_WRITE) && (MALI_GPU_SUPPORT_AFBC_YUV_WRITE == 1)
+#if defined(MALI_GPU_SUPPORT_AFBC_YUV_WRITE) && (MALI_GPU_SUPPORT_AFBC_YUV_WRITE == 1)
 	gpu_runtime_caps.caps_mask |= MALI_GRALLOC_FORMAT_CAPABILITY_AFBC_YUV_WRITE;
 #endif
 

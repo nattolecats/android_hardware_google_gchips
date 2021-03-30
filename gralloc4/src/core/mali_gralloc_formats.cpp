@@ -918,6 +918,20 @@ static void get_active_caps(const format_info_t format,
 		}
 	}
 
+	// TODO: b/183385318 Prefer 16x16 AFBC over 32x8 for GPU --> GPU
+	if ((producers & MALI_GRALLOC_PRODUCER_GPU) &&
+	    (consumers & MALI_GRALLOC_CONSUMER_GPU) &&
+            (producer_caps & consumer_caps & MALI_GRALLOC_FORMAT_CAPABILITY_AFBC_BASIC))
+	{
+		producer_mask &=
+			~(MALI_GRALLOC_FORMAT_CAPABILITY_AFBC_SPLITBLK |
+			  MALI_GRALLOC_FORMAT_CAPABILITY_AFBC_WIDEBLK);
+
+		consumer_mask &=
+			~(MALI_GRALLOC_FORMAT_CAPABILITY_AFBC_SPLITBLK |
+			  MALI_GRALLOC_FORMAT_CAPABILITY_AFBC_WIDEBLK);
+	}
+
 	if (consumers & MALI_GRALLOC_CONSUMER_DPU)
 	{
 		/* DPU does not support split-block other than RGB(A) 24/32-bit */
