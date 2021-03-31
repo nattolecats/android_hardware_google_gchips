@@ -20,7 +20,6 @@
 #define GRALLOC3_PRIV_H_
 
 #include <linux/fb.h>
-#include <linux/ion.h>
 #include <hardware/gralloc1.h>
 #include <inttypes.h>
 #include <log/log.h>
@@ -35,6 +34,9 @@
 
 #define GRALLOC1_CONSUMER_USAGE_YUV_RANGE_FULL                  GRALLOC1_CONSUMER_USAGE_PRIVATE_4
 #define GRALLOC1_CONSUMER_USAGE_VIDEO_PRIVATE_DATA              GRALLOC1_CONSUMER_USAGE_PRIVATE_7
+
+#define GRALLOC_USAGE_GOOGLE_IP_BO                              GRALLOC1_CONSUMER_USAGE_PRIVATE_16
+#define GRALLOC_USAGE_GOOGLE_IP_MFC                             GRALLOC1_CONSUMER_USAGE_PRIVATE_17
 
 #define GS101_GRALLOC_USAGE_TPU_INPUT                           GRALLOC1_CONSUMER_USAGE_PRIVATE_5
 #define GS101_GRALLOC_USAGE_TPU_OUTPUT                          GRALLOC1_PRODUCER_USAGE_PRIVATE_3

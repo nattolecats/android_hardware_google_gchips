@@ -55,6 +55,7 @@ namespace hidl_common = android::hardware::graphics::common::V1_1;
 #define GRALLOC_USAGE_PRIVATE_18 1ULL << 49
 #define GRALLOC_USAGE_PRIVATE_19 1ULL << 48
 
+// TODO(b/183478446): Cleanup usage flags redefinition
 typedef enum
 {
 	MALI_GRALLOC_USAGE_FRONTBUFFER = GRALLOC_USAGE_PRIVATE_12,
