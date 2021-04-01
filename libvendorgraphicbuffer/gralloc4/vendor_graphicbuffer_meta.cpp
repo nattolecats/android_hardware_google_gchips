@@ -20,7 +20,8 @@
 #include "VendorGraphicBuffer.h"
 #include "mali_gralloc_buffer.h"
 #include "mali_gralloc_formats.h"
-#include "hidl_common/SharedMetadata_struct.h"
+#include "hidl_common/SharedMetadata.h"
+#include "exynos_format.h"
 
 using namespace android;
 using namespace vendor::graphics;
@@ -68,6 +69,18 @@ int VendorGraphicBufferMeta::get_dataspace(buffer_handle_t hnd)
 	return ret;
 }
 
+int VendorGraphicBufferMeta::set_dataspace(buffer_handle_t hnd, android_dataspace_t dataspace)
+{
+	const private_handle_t *gralloc_hnd = static_cast<const private_handle_t *>(hnd);
+
+	if (!gralloc_hnd)
+		return -1;
+
+	arm::mapper::common::set_dataspace(gralloc_hnd, static_cast<Dataspace>(dataspace));
+
+	return 0;
+}
+
 int VendorGraphicBufferMeta::is_afbc(buffer_handle_t hnd)
 {
 	const private_handle_t *gralloc_hnd = static_cast<const private_handle_t *>(hnd);
@@ -79,6 +92,32 @@ int VendorGraphicBufferMeta::is_afbc(buffer_handle_t hnd)
 		return 1;
 
 	return 0;
+}
+
+int VendorGraphicBufferMeta::is_sbwc(buffer_handle_t buffer_hnd_p)
+{
+	const private_handle_t *hnd = static_cast<const private_handle_t *>(buffer_hnd_p);
+
+	switch (static_cast<uint32_t>(hnd->alloc_format & MALI_GRALLOC_INTFMT_FMT_MASK)) {
+                case HAL_PIXEL_FORMAT_EXYNOS_YCbCr_420_SP_M_SBWC:
+                case HAL_PIXEL_FORMAT_EXYNOS_YCbCr_420_SPN_SBWC:
+                case HAL_PIXEL_FORMAT_EXYNOS_YCbCr_420_SP_M_10B_SBWC:
+                case HAL_PIXEL_FORMAT_EXYNOS_YCbCr_420_SPN_10B_SBWC:
+                case HAL_PIXEL_FORMAT_EXYNOS_YCrCb_420_SP_M_SBWC:
+                case HAL_PIXEL_FORMAT_EXYNOS_YCrCb_420_SP_M_10B_SBWC:
+                case HAL_PIXEL_FORMAT_EXYNOS_YCbCr_420_SP_M_SBWC_L50:
+                case HAL_PIXEL_FORMAT_EXYNOS_YCbCr_420_SP_M_SBWC_L75:
+                case HAL_PIXEL_FORMAT_EXYNOS_YCbCr_420_SPN_SBWC_L50:
+                case HAL_PIXEL_FORMAT_EXYNOS_YCbCr_420_SPN_SBWC_L75:
+                case HAL_PIXEL_FORMAT_EXYNOS_YCbCr_420_SP_M_10B_SBWC_L40:
+                case HAL_PIXEL_FORMAT_EXYNOS_YCbCr_420_SP_M_10B_SBWC_L60:
+                case HAL_PIXEL_FORMAT_EXYNOS_YCbCr_420_SP_M_10B_SBWC_L80:
+                case HAL_PIXEL_FORMAT_EXYNOS_YCbCr_420_SPN_10B_SBWC_L40:
+                case HAL_PIXEL_FORMAT_EXYNOS_YCbCr_420_SPN_10B_SBWC_L60:
+                case HAL_PIXEL_FORMAT_EXYNOS_YCbCr_420_SPN_10B_SBWC_L80:
+                        return true;
+        }
+        return false;
 }
 
 #define GRALLOC_META_GETTER(__type__, __name__, __member__) \

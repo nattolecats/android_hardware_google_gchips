@@ -1386,6 +1386,9 @@ uint32_t get_base_format(const uint64_t req_format,
 	/* Map Android flexible formats to internal base formats */
 	if (req_format == HAL_PIXEL_FORMAT_IMPLEMENTATION_DEFINED)
 	{
+		auto consumers = get_consumers(usage);
+		auto producers = get_producers(usage);
+
 		if ((usage & GRALLOC_USAGE_HW_TEXTURE) || (usage & GRALLOC_USAGE_HW_COMPOSER))
 		{
 			if(usage & GRALLOC_USAGE_YUV_RANGE_FULL)
@@ -1396,6 +1399,11 @@ uint32_t get_base_format(const uint64_t req_format,
 			{
 				base_format = HAL_PIXEL_FORMAT_EXYNOS_YCrCb_420_SP_M;    //NV21M narrow
 			}
+		}
+		else if ((producers & MALI_GRALLOC_PRODUCER_CAM) && (consumers == GOOGLE_GRALLOC_CONSUMER_MFC))
+		{
+			// Allocated buffer is SBWC compressed when MFC is the sole consumer for camera buffers
+			base_format = HAL_PIXEL_FORMAT_EXYNOS_YCbCr_420_SP_M_SBWC;
 		}
 		else if (usage & GRALLOC_USAGE_HW_VIDEO_ENCODER)
 		{

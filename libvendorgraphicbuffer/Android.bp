@@ -58,6 +58,10 @@ vendorgraphicbuffer_cc_defaults {
 				srcs: [
 					"gralloc4/vendor_graphicbuffer_mapper.cpp",
 					"gralloc4/vendor_graphicbuffer_meta.cpp",
+					":libgralloc_hidl_common_shared_metadata",
+				],
+				shared_libs: [
+					"libdrm",
 				],
 			},
 		},
