@@ -277,6 +277,10 @@ static unsigned int select_heap_mask(uint64_t usage)
 		heap_mask = EXYNOS_ION_HEAP_EXT_UI_MASK;
 	}
 #endif
+	else if (usage & GRALLOC_USAGE_SENSOR_DIRECT_DATA)
+	{
+		heap_mask = EXYNOS_ION_HEAP_SENSOR_DIRECT_MASK;
+	}
 	else
 	{
 		heap_mask = EXYNOS_ION_HEAP_SYSTEM_MASK;

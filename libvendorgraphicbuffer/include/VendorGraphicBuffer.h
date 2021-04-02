@@ -39,7 +39,6 @@ typedef android::hardware::graphics::common::V1_2::BufferUsage BufferUsage;
 
 enum VendorGraphicBufferUsage {
 /* S.LSI specific usages */
-	PROTECTED_DPB                   = 1ULL << 28,
 	NO_AFBC                         = 1ULL << 29,
 	ROIINFO                         = 1ULL << 52,
 	AFBC_PADDING                    = 1ULL << 53,
@@ -48,7 +47,6 @@ enum VendorGraphicBufferUsage {
 	NOZEROED                        = 1ULL << 58,
 	PRIVATE_NONSECURE               = 1ULL << 59,
 	VIDEO_PRIVATE_DATA              = 1ULL << 60,
-	YUV_RANGE_FULL                  = 1ULL << 63,
 /* Google-specific usages */
 	CAMERA_STATS                    = 1ULL << 30,
 	TPU_OUTPUT                      = 1ULL << 31,

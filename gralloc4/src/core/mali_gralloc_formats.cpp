@@ -1391,14 +1391,7 @@ uint32_t get_base_format(const uint64_t req_format,
 
 		if ((usage & GRALLOC_USAGE_HW_TEXTURE) || (usage & GRALLOC_USAGE_HW_COMPOSER))
 		{
-			if(usage & GRALLOC_USAGE_YUV_RANGE_FULL)
-			{
-				base_format = HAL_PIXEL_FORMAT_EXYNOS_YCrCb_420_SP_M_FULL; // NV21M Full
-			}
-			else
-			{
-				base_format = HAL_PIXEL_FORMAT_EXYNOS_YCrCb_420_SP_M;    //NV21M narrow
-			}
+			base_format = HAL_PIXEL_FORMAT_EXYNOS_YCrCb_420_SP_M;    //NV21M narrow
 		}
 		else if ((producers & MALI_GRALLOC_PRODUCER_CAM) && (consumers == GOOGLE_GRALLOC_CONSUMER_MFC))
 		{

@@ -64,11 +64,9 @@ typedef enum
 	MALI_GRALLOC_USAGE_AFBC_PADDING = GRALLOC_USAGE_PRIVATE_14,
 
 	/* SLSI specific usages */
-	GRALLOC_USAGE_PROTECTED_DPB                            = GRALLOC_USAGE_PRIVATE_0,
 	GRALLOC_USAGE_PRIVATE_NONSECURE                        = GRALLOC_USAGE_PRIVATE_8,
 	GRALLOC_USAGE_NOZEROED                                 = GRALLOC_USAGE_PRIVATE_9,
 
-	GRALLOC_USAGE_YUV_RANGE_FULL                           = GRALLOC_USAGE_PRIVATE_4,
 	GRALLOC_USAGE_VIDEO_PRIVATE_DATA                       = GRALLOC_USAGE_PRIVATE_7,
 
 	GRALLOC_USAGE_ROIINFO                                  = GRALLOC_USAGE_PRIVATE_15,
@@ -148,7 +146,6 @@ static const uint64_t VALID_USAGE =
     GRALLOC_USAGE_ROIINFO |                 /* 1U << 52 */
     MALI_GRALLOC_USAGE_AFBC_PADDING |       /* 1U << 53 */
     MALI_GRALLOC_USAGE_FORCE_BACKBUFFER |   /* 1U << 54 */
-    GRALLOC_USAGE_PROTECTED_DPB |           /* 1U << 28 */
     MALI_GRALLOC_USAGE_NO_AFBC |            /* 1U << 29 */
     0;
 

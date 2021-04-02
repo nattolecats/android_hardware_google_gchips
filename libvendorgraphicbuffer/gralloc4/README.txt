@@ -153,12 +153,10 @@ But I recommend moving over the Usages declared in
 
 /* S.LSI specific usages */
 enum VendorGraphicBufferUsage {
-        PROTECTED_DPB                   = 1ULL << 28,
         NO_AFBC                         = 1ULL << 29,
         NOZEROED                        = 1ULL << 58,
         PRIVATE_NONSECURE               = 1ULL << 59,
         VIDEO_PRIVATE_DATA              = 1ULL << 60,
-        YUV_RANGE_FULL                  = 1ULL << 63,
 };
 
     Instead of using GRALLOC1_PRODUCER_USAGE_NO_AFBC,

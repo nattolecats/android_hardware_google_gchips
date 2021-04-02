@@ -754,12 +754,6 @@ static int set_dataspace(private_handle_t * const hnd, uint64_t usage, int32_t f
 					}
 			}
 
-			if (usage & GRALLOC1_CONSUMER_USAGE_YUV_RANGE_FULL)
-			{
-				range = HAL_DATASPACE_RANGE_FULL;
-				hnd->yuv_info = MALI_YUV_BT601_WIDE;
-			}
-
 			data_space = color_space | range;
 		}
 		else
@@ -822,11 +816,6 @@ static int set_dataspace(private_handle_t * const hnd, uint64_t usage, int32_t f
 					color_space = HAL_DATASPACE_STANDARD_BT601_625;
 					range = HAL_DATASPACE_RANGE_FULL;
 				}
-		}
-
-		if (usage & GRALLOC1_CONSUMER_USAGE_YUV_RANGE_FULL)
-		{
-			range = HAL_DATASPACE_RANGE_FULL;
 		}
 
 		data_space = color_space | range;

@@ -420,17 +420,6 @@ static int alloc_from_ion_heap(uint64_t usage, size_t size,
 	 */
 	if (shared_fd < 0)
 	{
-		if (usage & GRALLOC1_PRODUCER_USAGE_PROTECTED_DPB)
-		{
-			heap_mask = EXYNOS_ION_HEAP_VIDEO_FRAME_MASK;
-			shared_fd = exynos_ion_alloc(ion_client, size, heap_mask, flags);
-			if (shared_fd < 0)
-			{
-				AERR("failed to get fd from exynos_ion_alloc");
-				return -1;
-			}
-		}
-
 		/* Don't allow falling back to sytem heap if secure was requested. */
 		if (heap_type == ION_HEAP_TYPE_SECURE)
 		{
