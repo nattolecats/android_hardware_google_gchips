@@ -65,6 +65,9 @@ arm_gralloc_core_cc_defaults {
 	include_dirs: [
 		"hardware/google/gchips/include",
 	],
+	header_libs: [
+		"device_kernel_headers",
+	],
 	static_libs: [
 		"libarect",
 	],
@@ -88,12 +91,5 @@ cc_library_static {
 	defaults: [
 		"arm_gralloc_core_defaults",
 		"arm_gralloc_version_defaults",
-	],
-}
-
-cc_library_host_static {
-	name: "libgralloc_core_host",
-	defaults: [
-		"arm_gralloc_core_defaults",
 	],
 }

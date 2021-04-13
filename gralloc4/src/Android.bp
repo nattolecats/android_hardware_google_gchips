@@ -73,6 +73,7 @@ cc_library_shared {
 	],
 	header_libs: [
 		"google_hal_headers",
+		"device_kernel_headers",
 	],
 	export_include_dirs: ["libGralloc4Wrapper/include"]
 }
