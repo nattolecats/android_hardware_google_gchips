@@ -40,6 +40,7 @@ typedef android::hardware::graphics::common::V1_2::BufferUsage BufferUsage;
 enum VendorGraphicBufferUsage {
 /* S.LSI specific usages */
 	NO_AFBC                         = 1ULL << 29,
+	MFC                             = 1ULL << 50,  /* identical to GRALLOC_USAGE_GOOGLE_IP_MFC */
 	ROIINFO                         = 1ULL << 52,
 	AFBC_PADDING                    = 1ULL << 53,
 	FORCE_BACKBUFFER                = 1ULL << 54,
