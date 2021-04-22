@@ -22,6 +22,7 @@
 #include <log/log.h>
 #include <assert.h>
 #include <vector>
+#include <cutils/properties.h>
 
 #include "gralloc_priv.h"
 #include "mali_gralloc_bufferallocation.h"
@@ -87,8 +88,8 @@ static uint16_t get_vpu_consumer(uint64_t usage)
 	if (usage & GRALLOC_USAGE_GOOGLE_IP_BO)
 		return GOOGLE_GRALLOC_CONSUMER_BO;
 
-	MALI_GRALLOC_LOGV("Video consumer IP not specified, falling back to default VPU consumer");
-	return MALI_GRALLOC_CONSUMER_VPU;
+	// TODO(b/185896428): Support 64-bits usage version for GraphicBufferSource
+	return GOOGLE_GRALLOC_CONSUMER_MFC;
 }
 
 /*
@@ -1396,7 +1397,11 @@ uint32_t get_base_format(const uint64_t req_format,
 		else if ((producers & MALI_GRALLOC_PRODUCER_CAM) && (consumers == GOOGLE_GRALLOC_CONSUMER_MFC))
 		{
 			// Allocated buffer is SBWC compressed when MFC is the sole consumer for camera buffers
-			base_format = HAL_PIXEL_FORMAT_EXYNOS_YCbCr_420_SP_M_SBWC;
+			if (property_get_bool("debug.vendor.gpu.record_sbwc", true)) {
+				base_format = HAL_PIXEL_FORMAT_EXYNOS_YCbCr_420_SP_M_SBWC;
+			} else {
+				base_format = HAL_PIXEL_FORMAT_EXYNOS_YCrCb_420_SP_M;
+			}
 		}
 		else if (usage & GRALLOC_USAGE_HW_VIDEO_ENCODER)
 		{

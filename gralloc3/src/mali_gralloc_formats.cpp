@@ -22,6 +22,7 @@
 #include <log/log.h>
 #include <assert.h>
 #include <vector>
+#include <cutils/properties.h>
 
 #if GRALLOC_VERSION_MAJOR == 1
 #include <hardware/gralloc1.h>
@@ -1612,7 +1613,11 @@ uint32_t get_base_format(const uint64_t req_format,
 			// camera buffers. But, we cannot differentiate the type of video encoder
 			// on gralloc3. Since BO does not support encoding in P21, it is safe to
 			// enable SBWC for all camera buffers.
-			base_format = HAL_PIXEL_FORMAT_EXYNOS_YCbCr_420_SP_M_SBWC;
+			if (property_get_bool("debug.vendor.gpu.record_sbwc", true)) {
+				base_format = HAL_PIXEL_FORMAT_EXYNOS_YCbCr_420_SP_M_SBWC;
+			} else {
+				base_format = HAL_PIXEL_FORMAT_EXYNOS_YCrCb_420_SP_M;
+			}
 		}
 		else if (usage & GRALLOC1_CONSUMER_USAGE_VIDEO_ENCODER)
 		{
