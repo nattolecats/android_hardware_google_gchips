@@ -127,6 +127,21 @@ struct ion_device
 	 */
 	int alloc_from_ion_heap(uint64_t usage, size_t size, unsigned int flags, int *min_pgsz);
 
+	/*
+	 *  Signals the start or end of a region where the CPU is accessing a
+	 *  buffer, allowing appropriate cache synchronization.
+	 *
+	 * @param fd        [in]    fd for the buffer
+	 * @param read      [in]    True if the CPU is reading from the buffer
+	 * @param write     [in]    True if the CPU is writing to the buffer
+	 * @param start     [in]    True if the CPU has not yet performed the
+	 *                          operations; false if the operations are
+	 *                          completed.
+	 *
+	 * @return 0 on success; an error code otherwise.
+	 */
+	int sync(int fd, bool read, bool write, bool start);
+
 private:
 	int ion_client;
 	std::unique_ptr<BufferAllocator> buffer_allocator;
@@ -390,14 +405,63 @@ int ion_device::open_and_query_ion()
 	return 0;
 }
 
+static SyncType sync_type_for_flags(const bool read, const bool write)
+{
+	if (read && !write)
+	{
+		return SyncType::kSyncRead;
+	}
+	else if (write && !read)
+	{
+		return SyncType::kSyncWrite;
+	}
+	else
+	{
+		// Deliberately also allowing "not sure" to map to ReadWrite.
+		return SyncType::kSyncReadWrite;
+	}
+}
+
+int ion_device::sync(const int fd, const bool read, const bool write, const bool start)
+{
+	if (!buffer_allocator)
+	{
+		return -1;
+	}
+
+	if (start)
+	{
+		return buffer_allocator->CpuSyncStart(fd, sync_type_for_flags(read, write));
+	}
+	else
+	{
+		return buffer_allocator->CpuSyncEnd(fd, sync_type_for_flags(read, write));
+	}
+}
+
 static int mali_gralloc_ion_sync(const private_handle_t * const hnd,
-                                       const bool /* read */,
-                                       const bool /* write */,
-                                       const bool /* start */)
+                                       const bool read,
+                                       const bool write,
+                                       const bool start)
 {
 	if (hnd == NULL)
 	{
 		return -EINVAL;
+	}
+
+	ion_device *dev = ion_device::get();
+	if (!dev)
+	{
+		return -1;
+	}
+
+	for (int i = 0; i < hnd->fd_count; i++)
+	{
+		const int fd = hnd->fds[i];
+		if (const int ret = dev->sync(fd, read, write, start))
+		{
+			return ret;
+		}
 	}
 
 	return 0;
