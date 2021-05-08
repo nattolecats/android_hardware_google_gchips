@@ -464,6 +464,28 @@ static void update_yv12_stride(int8_t plane,
 }
 #endif
 
+/*
+ * Modify usage flag when BO is the producer
+ *
+ * BO cannot use the flags CPU_READ_RARELY as Codec layer redefines those flags
+ * for some internal usage. So, when BO is sending CPU_READ_OFTEN, it still
+ * expects to allocate an uncached buffer and this procedure convers the OFTEN
+ * flag to RARELY.
+ */
+static uint64_t update_usage_for_BO(uint64_t usage) {
+	MALI_GRALLOC_LOGV("Hacking CPU RW flags for BO");
+	if (usage & hidl_common::BufferUsage::CPU_READ_OFTEN) {
+		usage &= ~(static_cast<uint64_t>(hidl_common::BufferUsage::CPU_READ_OFTEN));
+		usage |= hidl_common::BufferUsage::CPU_READ_RARELY;
+	}
+
+	if (usage & hidl_common::BufferUsage::CPU_WRITE_OFTEN) {
+		usage &= ~(static_cast<uint64_t>(hidl_common::BufferUsage::CPU_WRITE_OFTEN));
+		usage |= hidl_common::BufferUsage::CPU_WRITE_RARELY;
+	}
+	return usage;
+}
+
 
 /*
  * Calculate allocation size.
@@ -1004,6 +1026,14 @@ int mali_gralloc_buffer_allocate(const gralloc_buffer_descriptor_t *descriptors,
 	for (uint32_t i = 0; i < numDescriptors; i++)
 	{
 		buffer_descriptor_t * const bufDescriptor = (buffer_descriptor_t *)(descriptors[i]);
+
+		assert(bufDescriptor->producer_usage == bufDescriptor->consumer_usage);
+		uint64_t usage = bufDescriptor->producer_usage;
+		if ((usage & hidl_common::BufferUsage::VIDEO_DECODER) && (usage & GRALLOC_USAGE_GOOGLE_IP_BO)) {
+			usage = update_usage_for_BO(usage);
+			bufDescriptor->producer_usage = usage;
+			bufDescriptor->consumer_usage = usage;
+		}
 
 		/* Derive the buffer size from descriptor parameters */
 		err = mali_gralloc_derive_format_and_size(bufDescriptor);
