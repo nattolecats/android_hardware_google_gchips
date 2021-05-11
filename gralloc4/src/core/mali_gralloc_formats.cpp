@@ -1394,9 +1394,14 @@ uint32_t get_base_format(const uint64_t req_format,
 		{
 			base_format = HAL_PIXEL_FORMAT_EXYNOS_YCrCb_420_SP_M;    //NV21M narrow
 		}
-		else if ((producers & MALI_GRALLOC_PRODUCER_CAM) && (consumers == GOOGLE_GRALLOC_CONSUMER_MFC))
+		else if ((producers & MALI_GRALLOC_PRODUCER_CAM) &&
+			 !(producers & MALI_GRALLOC_PRODUCER_GPU) &&
+			 (consumers == GOOGLE_GRALLOC_CONSUMER_MFC))
 		{
-			// Allocated buffer is SBWC compressed when MFC is the sole consumer for camera buffers
+			// Allocated camera buffer is SBWC compressed when
+			// 1. Camera is one of the producers
+			// 2. GPU is not one of the producers
+			// 3. MFC is the sole consumer
 			if (property_get_bool("debug.vendor.gpu.record_sbwc", true)) {
 				base_format = HAL_PIXEL_FORMAT_EXYNOS_YCbCr_420_SP_M_SBWC;
 			} else {
