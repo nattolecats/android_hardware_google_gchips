@@ -41,6 +41,9 @@
 #define YUV_BYTE_ALIGN_DEFAULT 16
 #define RGB_BYTE_ALIGN_DEFAULT 64
 
+/* IP-specific align values */
+#define GPU_BYTE_ALIGN_DEFAULT 64
+
 /* Always CPU align for Exynos */
 #define CAN_SKIP_CPU_ALIGN 0
 
@@ -486,6 +489,11 @@ static uint64_t update_usage_for_BO(uint64_t usage) {
 	return usage;
 }
 
+static void align_plane_stride(plane_info_t *plane_info, int plane, const format_info_t format, uint32_t stride_align)
+{
+	plane_info[plane].byte_stride = GRALLOC_ALIGN(plane_info[plane].byte_stride * format.tile_size, stride_align) / format.tile_size;
+	plane_info[plane].alloc_width = plane_info[plane].byte_stride * 8 / format.bpp[plane];
+}
 
 /*
  * Calculate allocation size.
@@ -509,6 +517,7 @@ static void calc_allocation_size(const int width,
                                  const format_info_t format,
                                  const bool has_cpu_usage,
                                  const bool has_hw_usage,
+                                 const bool has_gpu_usage,
                                  int * const pixel_stride,
                                  uint64_t * const size,
                                  plane_info_t plane_info[MAX_PLANES])
@@ -557,9 +566,25 @@ static void calc_allocation_size(const int width,
 			uint16_t hw_align = 0;
 			if (has_hw_usage)
 			{
+				static_assert(is_power2(YUV_BYTE_ALIGN_DEFAULT),
+							  "YUV_BYTE_ALIGN_DEFAULT is not a power of 2");
+				static_assert(is_power2(RGB_BYTE_ALIGN_DEFAULT),
+							  "RGB_BYTE_ALIGN_DEFAULT is not a power of 2");
+
 				hw_align = format.is_yuv ?
 					YUV_BYTE_ALIGN_DEFAULT :
 					(format.is_rgb ? RGB_BYTE_ALIGN_DEFAULT : 0);
+			}
+
+			if (has_gpu_usage)
+			{
+				static_assert(is_power2(GPU_BYTE_ALIGN_DEFAULT),
+							  "RGB_BYTE_ALIGN_DEFAULT is not a power of 2");
+
+				/*
+				 * The GPU requires stricter alignment on YUV and raw formats.
+				 */
+				hw_align = std::max(hw_align, static_cast<uint16_t>(GPU_BYTE_ALIGN_DEFAULT));
 			}
 
 			uint32_t cpu_align = 0;
@@ -579,8 +604,7 @@ static void calc_allocation_size(const int width,
 			uint32_t stride_align = lcm(hw_align, cpu_align);
 			if (stride_align)
 			{
-				plane_info[plane].byte_stride = GRALLOC_ALIGN(plane_info[plane].byte_stride * format.tile_size, stride_align) / format.tile_size;
-				plane_info[plane].alloc_width = plane_info[plane].byte_stride * 8 / format.bpp[plane];
+				align_plane_stride(plane_info, plane, format, stride_align);
 			}
 
 #if REALIGN_YV12 == 1
@@ -719,7 +743,8 @@ static bool validate_format(const format_info_t * const format,
 }
 
 static int prepare_descriptor_exynos_formats(
-		buffer_descriptor_t *bufDescriptor)
+		buffer_descriptor_t *bufDescriptor,
+		format_info_t format_info)
 {
 	int fd_count = 1;
 	int w = bufDescriptor->width;
@@ -865,6 +890,40 @@ static int prepare_descriptor_exynos_formats(
 
 	plane_info_t *plane = bufDescriptor->plane_info;
 
+	if (usage & (GRALLOC_USAGE_HW_TEXTURE | GRALLOC_USAGE_HW_RENDER | GRALLOC_USAGE_GPU_DATA_BUFFER))
+	{
+		if (is_sbwc_format(format))
+		{
+			MALI_GRALLOC_LOGE("using SBWC format (%s %" PRIx64 ") with GPU is invalid",
+							  format_name(bufDescriptor->alloc_format),
+							  bufDescriptor->alloc_format);
+			return -1;
+		}
+		else
+		{
+			/*
+			 * The GPU requires stricter alignment on YUV formats.
+			 */
+			for (int pidx = 0; pidx < plane_count; ++pidx)
+			{
+				if (plane[pidx].size == plane[pidx].byte_stride * plane[pidx].alloc_height)
+				{
+					align_plane_stride(plane, pidx, format_info, GPU_BYTE_ALIGN_DEFAULT);
+					plane[pidx].size = plane[pidx].byte_stride * plane[pidx].alloc_height;
+				}
+				else
+				{
+					MALI_GRALLOC_LOGE("buffer with format (%s %" PRIx64
+									  ") has size %" PRIu64
+									  " != byte_stride %" PRIu32 " * alloc_height %" PRIu32,
+									  format_name(bufDescriptor->alloc_format),
+									  bufDescriptor->alloc_format,
+									  plane[pidx].size, plane[pidx].byte_stride, plane[pidx].alloc_height);
+				}
+			}
+		}
+	}
+
 	for (int fidx = 0; fidx < fd_count; fidx++)
 	{
 		uint64_t size = 0;
@@ -945,7 +1004,7 @@ int mali_gralloc_derive_format_and_size(buffer_descriptor_t * const bufDescripto
 
 	if (is_exynos_format(bufDescriptor->alloc_format))
 	{
-		prepare_descriptor_exynos_formats(bufDescriptor);
+		prepare_descriptor_exynos_formats(bufDescriptor, formats[format_idx]);
 	}
 	else
 	{
@@ -967,6 +1026,7 @@ int mali_gralloc_derive_format_and_size(buffer_descriptor_t * const bufDescripto
 		                     formats[format_idx],
 		                     usage & (GRALLOC_USAGE_SW_READ_MASK | GRALLOC_USAGE_SW_WRITE_MASK),
 		                     usage & ~(GRALLOC_USAGE_PRIVATE_MASK | GRALLOC_USAGE_SW_READ_MASK | GRALLOC_USAGE_SW_WRITE_MASK),
+		                     usage & (GRALLOC_USAGE_HW_TEXTURE | GRALLOC_USAGE_HW_RENDER | GRALLOC_USAGE_GPU_DATA_BUFFER),
 		                     &bufDescriptor->pixel_stride,
 		                     &bufDescriptor->alloc_sizes[0],
 		                     bufDescriptor->plane_info);

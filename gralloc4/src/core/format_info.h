@@ -39,6 +39,10 @@ typedef struct
 	uint16_t height;
 } rect_t;
 
+constexpr bool is_power2(uint8_t n)
+{
+	return ((n & (n-1)) == 0);
+}
 
 /*
  * Pixel format information.

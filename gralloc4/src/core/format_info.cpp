@@ -438,12 +438,6 @@ void get_format_dataspace(uint32_t base_format,
 }
 
 
-bool is_power2(uint8_t n)
-{
-	return ((n & (n-1)) == 0);
-}
-
-
 bool sanitize_formats(void)
 {
 	bool fail = false;
