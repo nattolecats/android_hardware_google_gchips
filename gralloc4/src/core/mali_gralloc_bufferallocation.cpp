@@ -517,7 +517,7 @@ static void calc_allocation_size(const int width,
                                  const format_info_t format,
                                  const bool has_cpu_usage,
                                  const bool has_hw_usage,
-                                 const bool has_gpu_usage,
+                                 const bool has_gpu_camera_usage,
                                  int * const pixel_stride,
                                  uint64_t * const size,
                                  plane_info_t plane_info[MAX_PLANES])
@@ -576,13 +576,14 @@ static void calc_allocation_size(const int width,
 					(format.is_rgb ? RGB_BYTE_ALIGN_DEFAULT : 0);
 			}
 
-			if (has_gpu_usage)
+			if (has_gpu_camera_usage)
 			{
 				static_assert(is_power2(GPU_BYTE_ALIGN_DEFAULT),
-							  "RGB_BYTE_ALIGN_DEFAULT is not a power of 2");
+							  "GPU_BYTE_ALIGN_DEFAULT is not a power of 2");
 
 				/*
 				 * The GPU requires stricter alignment on YUV and raw formats.
+				 * Only enforce this for camera buffers for now (b/188226310).
 				 */
 				hw_align = std::max(hw_align, static_cast<uint16_t>(GPU_BYTE_ALIGN_DEFAULT));
 			}
@@ -742,6 +743,33 @@ static bool validate_format(const format_info_t * const format,
 	return true;
 }
 
+static bool is_gpu_camera_usage(uint64_t usage)
+{
+	/*
+	 * Conservatively report GPU+camera usage (requiring extra alignment) for
+	 * all cases where the GPU and the camera touch the same buffer, allowing
+	 * the use of OpenCL.
+	 *
+	 * MFC cannot use this alignment, so report an error and don't align if
+	 * video is involved.
+	 *
+	 * Note that HW_RENDER is not considered a "GPU usage" for this purpose
+	 * since render targets aren't subject to OpenCL alignment restrictions.
+	 */
+
+	const bool is_gpu_usage = (usage & (GRALLOC_USAGE_HW_TEXTURE | GRALLOC_USAGE_GPU_DATA_BUFFER));
+	const bool is_camera_usage = (usage & (GRALLOC_USAGE_HW_CAMERA_WRITE | GRALLOC_USAGE_HW_CAMERA_READ));
+	const bool is_video_usage = (usage & (GRALLOC_USAGE_HW_VIDEO_DECODER | GRALLOC_USAGE_HW_VIDEO_ENCODER));
+
+	if (is_gpu_usage && is_camera_usage && is_video_usage)
+	{
+		MALI_GRALLOC_LOGE("ERROR: camera, video AND gpu usages are specified for a buffer (%s).  Stride will likely be wrong.", describe_usage(usage).c_str());
+		return false;
+	}
+
+	return is_gpu_usage && is_camera_usage;
+}
+
 static int prepare_descriptor_exynos_formats(
 		buffer_descriptor_t *bufDescriptor,
 		format_info_t format_info)
@@ -890,7 +918,7 @@ static int prepare_descriptor_exynos_formats(
 
 	plane_info_t *plane = bufDescriptor->plane_info;
 
-	if (usage & (GRALLOC_USAGE_HW_TEXTURE | GRALLOC_USAGE_HW_RENDER | GRALLOC_USAGE_GPU_DATA_BUFFER))
+	if (is_gpu_camera_usage(usage))
 	{
 		if (is_sbwc_format(format))
 		{
@@ -903,6 +931,7 @@ static int prepare_descriptor_exynos_formats(
 		{
 			/*
 			 * The GPU requires stricter alignment on YUV formats.
+			 * Only enforce this for camera buffers for now (b/188226310).
 			 */
 			for (int pidx = 0; pidx < plane_count; ++pidx)
 			{
@@ -1026,7 +1055,7 @@ int mali_gralloc_derive_format_and_size(buffer_descriptor_t * const bufDescripto
 		                     formats[format_idx],
 		                     usage & (GRALLOC_USAGE_SW_READ_MASK | GRALLOC_USAGE_SW_WRITE_MASK),
 		                     usage & ~(GRALLOC_USAGE_PRIVATE_MASK | GRALLOC_USAGE_SW_READ_MASK | GRALLOC_USAGE_SW_WRITE_MASK),
-		                     usage & (GRALLOC_USAGE_HW_TEXTURE | GRALLOC_USAGE_HW_RENDER | GRALLOC_USAGE_GPU_DATA_BUFFER),
+		                     is_gpu_camera_usage(usage),
 		                     &bufDescriptor->pixel_stride,
 		                     &bufDescriptor->alloc_sizes[0],
 		                     bufDescriptor->plane_info);
