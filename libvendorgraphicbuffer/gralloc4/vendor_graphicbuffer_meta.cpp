@@ -246,6 +246,8 @@ void VendorGraphicBufferMeta::init(const buffer_handle_t handle)
 	consumer_usage = gralloc_hnd->consumer_usage;
 
 	flags = gralloc_hnd->flags;
+
+	unique_id = gralloc_hnd->backing_store_id;
 }
 
 VendorGraphicBufferMeta::VendorGraphicBufferMeta(buffer_handle_t handle)

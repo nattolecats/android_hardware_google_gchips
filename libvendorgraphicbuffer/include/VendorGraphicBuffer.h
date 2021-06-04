@@ -114,6 +114,8 @@ public:
 
 	int flags = 0;
 
+	uint64_t unique_id = 0;
+
 	VendorGraphicBufferMeta(const buffer_handle_t handle);
 
 	void init(const buffer_handle_t handle);
