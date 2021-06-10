@@ -1432,6 +1432,11 @@ uint32_t get_base_format(const uint64_t req_format,
 		{
 			base_format = HAL_PIXEL_FORMAT_EXYNOS_YCbCr_420_SP_M;
 		}
+		else if ((usage & GRALLOC_USAGE_HW_TEXTURE) && (usage & GRALLOC_USAGE_HW_CAMERA_WRITE))
+		{
+			// Camera flexible YUV format output maps to NV21M.
+			base_format = HAL_PIXEL_FORMAT_EXYNOS_YCrCb_420_SP_M;
+		}
 		else if (usage & (GRALLOC_USAGE_HW_RENDER | GRALLOC_USAGE_HW_TEXTURE))
 		{
 			base_format = HAL_PIXEL_FORMAT_EXYNOS_YCbCr_420_SP_M;
