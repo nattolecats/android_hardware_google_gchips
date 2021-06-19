@@ -116,3 +116,25 @@ int mali_gralloc_reference_release(buffer_handle_t handle, bool canFree)
 	pthread_mutex_unlock(&s_map_lock);
 	return 0;
 }
+
+int mali_gralloc_reference_validate(buffer_handle_t handle)
+{
+	if (private_handle_t::validate(handle) < 0)
+	{
+		MALI_GRALLOC_LOGE("Reference invalid buffer %p, returning error", handle);
+		return -EINVAL;
+	}
+
+	const auto *hnd = (private_handle_t *)handle;
+	pthread_mutex_lock(&s_map_lock);
+
+	if (hnd->allocating_pid == getpid() || hnd->remote_pid == getpid()) {
+		pthread_mutex_unlock(&s_map_lock);
+		return 0;
+	} else {
+		pthread_mutex_unlock(&s_map_lock);
+		MALI_GRALLOC_LOGE("Reference unimported buffer %p, returning error", handle);
+		return -EINVAL;
+	}
+}
+

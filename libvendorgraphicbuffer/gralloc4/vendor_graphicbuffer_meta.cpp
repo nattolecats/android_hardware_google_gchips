@@ -32,6 +32,15 @@ using aidl::android::hardware::graphics::common::Dataspace;
 #define UNUSED(x) ((void)x)
 #define SZ_4k 0x1000
 
+extern int mali_gralloc_reference_validate(buffer_handle_t handle);
+
+const private_handle_t * convertNativeHandleToPrivateHandle(buffer_handle_t handle) {
+	if (mali_gralloc_reference_validate(handle) < 0)
+		return nullptr;
+
+	return static_cast<const private_handle_t *>(handle);
+}
+
 int VendorGraphicBufferMeta::get_video_metadata_fd(buffer_handle_t hnd)
 {
 	const private_handle_t *gralloc_hnd = static_cast<const private_handle_t *>(hnd);
@@ -54,6 +63,9 @@ int VendorGraphicBufferMeta::get_dataspace(buffer_handle_t hnd)
 	if (!gralloc_hnd)
 		return -1;
 
+	if (mali_gralloc_reference_validate(hnd) < 0)
+		ALOGW("VendorGraphicBufferMeta: get_dataspace from unimported buffer %p", hnd);
+
 	int attr_fd = gralloc_hnd->get_share_attr_fd();
 
 	if(attr_fd < 0)
@@ -71,9 +83,9 @@ int VendorGraphicBufferMeta::get_dataspace(buffer_handle_t hnd)
 
 int VendorGraphicBufferMeta::set_dataspace(buffer_handle_t hnd, android_dataspace_t dataspace)
 {
-	const private_handle_t *gralloc_hnd = static_cast<const private_handle_t *>(hnd);
+	const auto *gralloc_hnd = convertNativeHandleToPrivateHandle(hnd);
 
-	if (!gralloc_hnd)
+	if (gralloc_hnd == nullptr)
 		return -1;
 
 	arm::mapper::common::set_dataspace(gralloc_hnd, static_cast<Dataspace>(dataspace));
@@ -180,10 +192,9 @@ uint64_t VendorGraphicBufferMeta::get_usage(buffer_handle_t hnd)
 
 void* VendorGraphicBufferMeta::get_video_metadata(buffer_handle_t hnd)
 {
-	private_handle_t *gralloc_hnd =
-		static_cast<private_handle_t *>(const_cast<native_handle_t *>(hnd));
+	const auto *gralloc_hnd = convertNativeHandleToPrivateHandle(hnd);
 
-	if (!gralloc_hnd)
+	if (gralloc_hnd == nullptr)
 		return nullptr;
 
 	return gralloc_hnd->attr_base;
@@ -191,10 +202,9 @@ void* VendorGraphicBufferMeta::get_video_metadata(buffer_handle_t hnd)
 
 void* VendorGraphicBufferMeta::get_video_metadata_roiinfo(buffer_handle_t hnd)
 {
-	private_handle_t *gralloc_hnd =
-		static_cast<private_handle_t *>(const_cast<native_handle_t *>(hnd));
+	const auto *gralloc_hnd = convertNativeHandleToPrivateHandle(hnd);
 
-	if (!gralloc_hnd)
+	if (gralloc_hnd == nullptr)
 		return nullptr;
 
 	if (gralloc_hnd->get_usage() & VendorGraphicBufferUsage::ROIINFO)

@@ -23,5 +23,6 @@
 
 int mali_gralloc_reference_retain(buffer_handle_t handle);
 int mali_gralloc_reference_release(buffer_handle_t handle, bool canFree);
+int mali_gralloc_reference_validate(buffer_handle_t handle);
 
 #endif /* MALI_GRALLOC_REFERENCE_H_ */
