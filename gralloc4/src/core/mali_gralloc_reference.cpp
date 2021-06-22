@@ -40,16 +40,35 @@ int mali_gralloc_reference_retain(buffer_handle_t handle)
 	if (hnd->allocating_pid == getpid() || hnd->remote_pid == getpid())
 	{
 		hnd->ref_count++;
-		pthread_mutex_unlock(&s_map_lock);
-		return 0;
 	}
 	else
 	{
 		hnd->remote_pid = getpid();
 		hnd->ref_count = 1;
+
+		// Reset the handle bases, this is used to check if a buffer is mapped
+		for (int fidx = 0; fidx < hnd->fd_count; fidx++) {
+			hnd->bases[fidx] = 0;
+		}
 	}
 
-	int retval= mali_gralloc_ion_map(hnd);
+	pthread_mutex_unlock(&s_map_lock);
+
+	return 0;
+}
+
+int mali_gralloc_reference_map(buffer_handle_t handle) {
+	private_handle_t *hnd = (private_handle_t *)handle;
+
+	pthread_mutex_lock(&s_map_lock);
+
+	if (hnd->bases[0]) {
+		MALI_GRALLOC_LOGV("Buffer is already mapped");
+		pthread_mutex_unlock(&s_map_lock);
+		return 0;
+	}
+
+	int retval = mali_gralloc_ion_map(hnd);
 
 	/* Import ION handle to let ION driver know who's using the buffer */
 	import_exynos_ion_handles(hnd);

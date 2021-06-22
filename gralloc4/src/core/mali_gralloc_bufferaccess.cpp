@@ -24,6 +24,7 @@
 #include "mali_gralloc_buffer.h"
 #include "mali_gralloc_formats.h"
 #include "mali_gralloc_usages.h"
+#include "mali_gralloc_reference.h"
 #include "allocator/mali_gralloc_ion.h"
 #include "gralloc_helper.h"
 #include "format_info.h"
@@ -240,13 +241,7 @@ int mali_gralloc_lock(buffer_handle_t buffer,
 			return -EINVAL;
 		}
 
-		/* Mapping is done during reference retain instead of lock */
-#if 0
-		if (ion_map_for_lock(hnd) < 0)
-		{
-			return -EINVAL;
-		}
-#endif
+		mali_gralloc_reference_map(buffer);
 
 		*vaddr = (void *)hnd->bases[0];
 

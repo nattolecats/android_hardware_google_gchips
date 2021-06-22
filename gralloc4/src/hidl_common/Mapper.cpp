@@ -184,6 +184,16 @@ static Error lockBuffer(buffer_handle_t bufferHandle,
 		return Error::BAD_BUFFER;
 	}
 
+	if (mali_gralloc_reference_validate(bufferHandle) < 0)
+	{
+		if (fenceFd >= 0)
+		{
+			close(fenceFd);
+		}
+		MALI_GRALLOC_LOGE("Buffer: %p is not imported", bufferHandle);
+		return Error::BAD_VALUE;
+	}
+
 	auto private_handle = private_handle_t::dynamicCast(bufferHandle);
 	if (private_handle->cpu_write != 0 && (cpuUsage & BufferUsage::CPU_WRITE_MASK))
 	{

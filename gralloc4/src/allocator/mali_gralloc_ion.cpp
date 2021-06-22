@@ -726,6 +726,7 @@ int mali_gralloc_ion_map(private_handle_t *hnd)
 			for (int cidx = 0; cidx < fidx; fidx++)
 			{
 				munmap((void*)hnd->bases[cidx], hnd->alloc_sizes[cidx]);
+				hnd->bases[cidx] = 0;
 			}
 
 			return -err;
