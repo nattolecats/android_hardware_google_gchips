@@ -623,6 +623,14 @@ void get(void *buffer, const IMapper::MetadataType &metadataType, IMapper::get_c
 		hidl_cb(Error::BAD_BUFFER, hidl_vec<uint8_t>());
 		return;
 	}
+
+	if (mali_gralloc_reference_validate((buffer_handle_t)handle) < 0)
+	{
+		MALI_GRALLOC_LOGE("Buffer: %p is not imported", handle);
+		hidl_cb(Error::BAD_VALUE, hidl_vec<uint8_t>());
+		return;
+	}
+
 	get_metadata(handle, metadataType, hidl_cb);
 }
 
@@ -635,6 +643,13 @@ Error set(void *buffer, const IMapper::MetadataType &metadataType, const hidl_ve
 		MALI_GRALLOC_LOGE("Buffer: %p has not been registered with Gralloc", buffer);
 		return Error::BAD_BUFFER;
 	}
+
+	if (mali_gralloc_reference_validate((buffer_handle_t)handle) < 0)
+	{
+		MALI_GRALLOC_LOGE("Buffer: %p is not imported", handle);
+		return Error::BAD_VALUE;
+	}
+
 	return set_metadata(handle, metadataType, metadata);
 }
 

@@ -17,6 +17,9 @@
 #define LOG_TAG "VendorGraphicBuffer"
 
 #include <log/log.h>
+#include <gralloctypes/Gralloc4.h>
+#include <android/hardware/graphics/mapper/4.0/IMapper.h>
+
 #include "VendorGraphicBuffer.h"
 #include "mali_gralloc_buffer.h"
 #include "mali_gralloc_formats.h"
@@ -28,17 +31,45 @@ using namespace vendor::graphics;
 
 using arm::mapper::common::shared_metadata;
 using aidl::android::hardware::graphics::common::Dataspace;
+using android::gralloc4::encodeDataspace;
+using android::gralloc4::decodeDataspace;
+using android::hardware::graphics::mapper::V4_0::IMapper;
+using android::hardware::graphics::mapper::V4_0::Error;
 
 #define UNUSED(x) ((void)x)
 #define SZ_4k 0x1000
 
-extern int mali_gralloc_reference_validate(buffer_handle_t handle);
+// TODO(b/191912915): This is a non-thread safe version of the validate function
+// from mapper-4.0-impl library. Ideally this should be decoupled from `impl`
+// libraries and should depend upon HAL (and it's extension) to call into
+// Gralloc.
+int mali_gralloc_reference_validate(buffer_handle_t handle) {
+  auto hnd = static_cast<const private_handle_t *>(handle);
+
+  if (hnd->allocating_pid != getpid() && hnd->remote_pid != getpid()) {
+    return -EINVAL;
+  }
+
+  return 0;
+}
 
 const private_handle_t * convertNativeHandleToPrivateHandle(buffer_handle_t handle) {
 	if (mali_gralloc_reference_validate(handle) < 0)
 		return nullptr;
 
 	return static_cast<const private_handle_t *>(handle);
+}
+
+android::sp<IMapper> get_mapper() {
+	static android::sp<IMapper> mapper = []() {
+		auto mapper = IMapper::getService();
+		if (!mapper) {
+			ALOGE("Failed to get mapper service");
+		}
+		return mapper;
+	}();
+
+	return mapper;
 }
 
 int VendorGraphicBufferMeta::get_video_metadata_fd(buffer_handle_t hnd)
@@ -58,37 +89,50 @@ int VendorGraphicBufferMeta::get_video_metadata_fd(buffer_handle_t hnd)
 
 int VendorGraphicBufferMeta::get_dataspace(buffer_handle_t hnd)
 {
-	const private_handle_t *gralloc_hnd = static_cast<const private_handle_t *>(hnd);
+	native_handle_t* handle = const_cast<native_handle_t*>(hnd);
+	if (!handle) {
+		return -EINVAL;
+	}
 
-	if (!gralloc_hnd)
-		return -1;
+	Error error = Error::NONE;
+	Dataspace dataspace;
+	get_mapper()->get(handle, android::gralloc4::MetadataType_Dataspace,
+	                  [&](const auto& tmpError, const android::hardware::hidl_vec<uint8_t>& tmpVec) {
+	                  	error = tmpError;
+	                  	if (error != Error::NONE) {
+	                  		return;
+	                  	}
+	                  	error = static_cast<Error>(decodeDataspace(tmpVec, &dataspace));
+	                  });
 
-	if (mali_gralloc_reference_validate(hnd) < 0)
-		ALOGW("VendorGraphicBufferMeta: get_dataspace from unimported buffer %p", hnd);
+	if (error != Error::NONE) {
+		ALOGE("Failed to get datasapce");
+		return -EINVAL;
+	}
 
-	int attr_fd = gralloc_hnd->get_share_attr_fd();
-
-	if(attr_fd < 0)
-		return -1;
-
-	shared_metadata *metadata = (shared_metadata *)mmap(0, sizeof(shared_metadata), PROT_READ, MAP_SHARED, attr_fd, 0);
-	std::optional<Dataspace> dataspace = metadata->dataspace.to_std_optional();
-
-	int32_t ret = static_cast<int32_t>(dataspace.value_or(Dataspace::UNKNOWN));
-
-	munmap(metadata, sizeof(shared_metadata));
-
-	return ret;
+	return static_cast<int>(dataspace);
 }
 
 int VendorGraphicBufferMeta::set_dataspace(buffer_handle_t hnd, android_dataspace_t dataspace)
 {
-	const auto *gralloc_hnd = convertNativeHandleToPrivateHandle(hnd);
+	native_handle_t* handle = const_cast<native_handle_t*>(hnd);
+	if (!handle) {
+		return -EINVAL;
+	}
 
-	if (gralloc_hnd == nullptr)
-		return -1;
+	Error error = Error::NONE;
+	android::hardware::hidl_vec<uint8_t> vec;
+	error = static_cast<Error>(encodeDataspace(static_cast<Dataspace>(dataspace), &vec));
+	if (error != Error::NONE) {
+		ALOGE("Error encoding dataspace");
+		return -EINVAL;
+	}
+	error = get_mapper()->set(handle, android::gralloc4::MetadataType_Dataspace, vec);
 
-	arm::mapper::common::set_dataspace(gralloc_hnd, static_cast<Dataspace>(dataspace));
+	if (error != Error::NONE) {
+		ALOGE("Failed to set datasapce");
+		return -EINVAL;
+	}
 
 	return 0;
 }

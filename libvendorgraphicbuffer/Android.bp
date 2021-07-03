@@ -58,7 +58,6 @@ vendorgraphicbuffer_cc_defaults {
 				srcs: [
 					"gralloc4/vendor_graphicbuffer_mapper.cpp",
 					"gralloc4/vendor_graphicbuffer_meta.cpp",
-					":libgralloc_hidl_common_shared_metadata",
 				],
 				shared_libs: [
 					"libdrm",
@@ -74,7 +73,7 @@ cc_library_shared {
 		"vendorgraphicbuffer_defaults",
 	],
 	shared_libs: [
-		"libcutils",
+		"libutils",
 		"libui",
 		"liblog",
 		"libhardware",
@@ -86,7 +85,6 @@ cc_library_shared {
 		"android.hardware.graphics.mapper@2.1",
 		"android.hardware.graphics.mapper@3.0",
 		"android.hardware.graphics.mapper@4.0",
-		"android.hardware.graphics.mapper@4.0-impl",
 		"libgralloctypes",
 		"libhidlbase",
 	],
