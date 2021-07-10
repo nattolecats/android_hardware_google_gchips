@@ -20,12 +20,5 @@ common_hal_dirs := \
 	libexynosutils \
 	videoapi
 
-ifeq ($(BOARD_USES_EXYNOS5_COMMON_GRALLOC), true)
-ifeq ($(BOARD_USES_EXYNOS_GRALLOC_VERSION), 3)
-common_hal_dirs += \
-    gralloc3
-endif
-endif
-
 include $(call all-named-subdir-makefiles,$(common_hal_dirs))
 endif
