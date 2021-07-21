@@ -47,8 +47,8 @@
 /* Always CPU align for Exynos */
 #define CAN_SKIP_CPU_ALIGN 0
 
-/* Do not realign YV12 formats for Exynos */
-#define REALIGN_YV12 0
+/* Realign YV12 format so that chroma stride is half of luma stride */
+#define REALIGN_YV12 1
 
 /* TODO: set S10B format align in BoardConfig.mk */
 #define BOARD_EXYNOS_S10B_FORMAT_ALIGN 64
