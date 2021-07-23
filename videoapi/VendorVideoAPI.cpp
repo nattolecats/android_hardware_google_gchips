@@ -910,7 +910,7 @@ int Exynos_dynamic_meta_to_itu_t_t35 (
     for (i = 0; i < 2; i++) {
         for (j = 0; j < 8; j++) {
             *((char *)pBlob + (bit_offset / 8)) |=
-                (*((char *)&pHDRDynamicInfo->data.provider_code + i) & (1 << (7 - j)));
+                (*((char *)&pHDRDynamicInfo->data.provider_code + 1 - i) & (1 << (7 - j)));
             bit_offset++;
 
             if (bit_offset == offset_limit)
@@ -924,7 +924,7 @@ int Exynos_dynamic_meta_to_itu_t_t35 (
     for (i = 0; i < 2; i++) {
         for (j = 0; j < 8; j++) {
             *((char *)pBlob + (bit_offset / 8)) |=
-                (*((char *)&pHDRDynamicInfo->data.provider_oriented_code + i) & (1 << (7 - j)));
+                (*((char *)&pHDRDynamicInfo->data.provider_oriented_code + 1 - i) & (1 << (7 - j)));
             bit_offset++;
 
             if (bit_offset == offset_limit)
@@ -1155,7 +1155,7 @@ int Exynos_dynamic_meta_to_itu_t_t35 (
 
     /* tone_mapping_flag: 1bit */
     if (pHDRDynamicInfo->data.tone_mapping.tone_mapping_flag) {
-        *((char *)pBlob + (bit_offset / 8)) |= (0x20 & (1 << (7 - extraBit)));
+        *((char *)pBlob + (bit_offset / 8)) |= (1 << (7 - extraBit));
     }
     bit_offset += 1;
     extraBit = (bit_offset % 8);
