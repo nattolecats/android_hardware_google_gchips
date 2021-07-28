@@ -230,6 +230,19 @@ void* VendorGraphicBufferMeta::get_video_metadata_roiinfo(buffer_handle_t hnd)
 	return nullptr;
 }
 
+/* This function is not used with gralloc3. return nullptr */
+buffer_handle_t VendorGraphicBufferMeta::import_buffer(buffer_handle_t hnd)
+{
+	UNUSED(hnd);
+	return nullptr;
+}
+
+/* This function is not used with gralloc3. */
+int VendorGraphicBufferMeta::free_buffer(buffer_handle_t hnd)
+{
+	return 0;
+}
+
 void VendorGraphicBufferMeta::init(const buffer_handle_t handle)
 {
 	const private_handle_t *gralloc_hnd = static_cast<const private_handle_t *>(handle);

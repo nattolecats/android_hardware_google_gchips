@@ -145,6 +145,9 @@ public:
 	static int get_video_metadata_fd(buffer_handle_t);
 	static int get_dataspace(buffer_handle_t);
 	static int set_dataspace(buffer_handle_t hnd, android_dataspace_t dataspace);
+
+	static buffer_handle_t import_buffer(buffer_handle_t);
+	static int free_buffer(buffer_handle_t);
 };
 
 

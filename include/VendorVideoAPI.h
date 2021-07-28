@@ -42,6 +42,7 @@ typedef enum _ExynosVideoInfoType {
     VIDEO_INFO_TYPE_YSUM_DATA          = 0x1 << 3,
     VIDEO_INFO_TYPE_HDR_DYNAMIC        = 0x1 << 4,
     VIDEO_INFO_TYPE_CHECK_PIXEL_FORMAT = 0x1 << 5,
+    VIDEO_INFO_TYPE_CROP_INFO          = 0x1 << 8,
 } ExynosVideoInfoType;
 
 typedef struct _ExynosVideoYSUMData {
@@ -110,6 +111,13 @@ typedef struct _ExynosHdrDynamicInfo {
     unsigned int reserved[42];
 } ExynosHdrDynamicInfo;
 
+typedef struct _ExynosVideoCrop {
+    int left;
+    int top;
+    int width;
+    int height;
+} ExynosVideoCrop;
+
 typedef struct _ExynosVideoDecData {
     int nInterlacedType;
 } ExynosVideoDecData;
@@ -132,6 +140,7 @@ typedef struct _ExynosVideoMeta {
     ExynosHdrDynamicInfo sHdrDynamicInfo;
 
     int nPixelFormat;
+    ExynosVideoCrop crop;
 } ExynosVideoMeta;
 
 int Exynos_parsing_user_data_registered_itu_t_t35(ExynosHdrDynamicInfo *dest, void *src);

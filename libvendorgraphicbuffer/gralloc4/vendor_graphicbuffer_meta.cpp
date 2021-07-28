@@ -44,13 +44,13 @@ using android::hardware::graphics::mapper::V4_0::Error;
 // libraries and should depend upon HAL (and it's extension) to call into
 // Gralloc.
 int mali_gralloc_reference_validate(buffer_handle_t handle) {
-  auto hnd = static_cast<const private_handle_t *>(handle);
+	auto hnd = static_cast<const private_handle_t *>(handle);
 
-  if (hnd->allocating_pid != getpid() && hnd->remote_pid != getpid()) {
-    return -EINVAL;
-  }
+	if (hnd->allocating_pid != getpid() && hnd->remote_pid != getpid()) {
+		return -EINVAL;
+	}
 
-  return 0;
+	return 0;
 }
 
 const private_handle_t * convertNativeHandleToPrivateHandle(buffer_handle_t handle) {
@@ -105,6 +105,7 @@ int VendorGraphicBufferMeta::get_dataspace(buffer_handle_t hnd)
 	                  	error = static_cast<Error>(decodeDataspace(tmpVec, &dataspace));
 	                  });
 
+
 	if (error != Error::NONE) {
 		ALOGE("Failed to get datasapce");
 		return -EINVAL;
@@ -154,7 +155,7 @@ int VendorGraphicBufferMeta::is_sbwc(buffer_handle_t buffer_hnd_p)
 {
 	const private_handle_t *hnd = static_cast<const private_handle_t *>(buffer_hnd_p);
 
-    return is_sbwc_format(static_cast<uint32_t>(hnd->alloc_format & MALI_GRALLOC_INTFMT_FMT_MASK));
+	return is_sbwc_format(static_cast<uint32_t>(hnd->alloc_format & MALI_GRALLOC_INTFMT_FMT_MASK));
 }
 
 #define GRALLOC_META_GETTER(__type__, __name__, __member__) \
@@ -166,7 +167,7 @@ __type__ VendorGraphicBufferMeta::get_##__name__(buffer_handle_t hnd) \
 } \
 
 
-uint32_t VendorGraphicBufferMeta::get_format(buffer_handle_t hnd) 
+uint32_t VendorGraphicBufferMeta::get_format(buffer_handle_t hnd)
 {
 	const private_handle_t *gralloc_hnd = static_cast<const private_handle_t *>(hnd);
 	if (!gralloc_hnd)
@@ -302,6 +303,45 @@ void VendorGraphicBufferMeta::init(const buffer_handle_t handle)
 	flags = gralloc_hnd->flags;
 
 	unique_id = gralloc_hnd->backing_store_id;
+}
+
+buffer_handle_t VendorGraphicBufferMeta::import_buffer(buffer_handle_t hnd)
+{
+	native_handle_t* handle = const_cast<native_handle_t*>(hnd);
+	if (!handle) {
+		return nullptr;
+	}
+
+	native_handle_t* bufferHandle = nullptr;
+	Error error = Error::NONE;
+	get_mapper()->importBuffer(handle, [&](const auto& tmpError, const auto& tmpBuffer) {
+				error = tmpError;
+				if (error != Error::NONE) {
+					return;
+				}
+				bufferHandle = static_cast<native_handle_t*>(tmpBuffer);
+			});
+
+	if (error != Error::NONE) {
+		ALOGE("[%s] Unable to import buffer", __FUNCTION__);
+		return nullptr;
+	}
+
+	return bufferHandle;
+}
+
+int VendorGraphicBufferMeta::free_buffer(buffer_handle_t hnd)
+{
+	native_handle_t* handle = const_cast<native_handle_t*>(hnd);
+	if (!handle) {
+		return -EINVAL;
+	}
+	Error error = get_mapper()->freeBuffer(handle);
+	if (error != Error::NONE) {
+		ALOGE("[%s] Failed to free buffer", __FUNCTION__);
+		return -EINVAL;
+	}
+	return 0;
 }
 
 VendorGraphicBufferMeta::VendorGraphicBufferMeta(buffer_handle_t handle)

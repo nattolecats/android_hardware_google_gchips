@@ -43,8 +43,7 @@ void setFormat(Descriptor &descriptor, int format);
 
 buffer_handle_t createNativeHandle(const Descriptor &descriptor);
 
-android::hardware::graphics::mapper::V4_0::Error retain(buffer_handle_t handle);
-android::hardware::graphics::mapper::V4_0::Error release(buffer_handle_t handle);
+int freeImportedHandle(void *handle);
 
 }  // namespace android::hardware::graphics::allocator::priv
 

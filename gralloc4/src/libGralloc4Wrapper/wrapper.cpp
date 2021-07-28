@@ -188,22 +188,50 @@ buffer_handle_t createNativeHandle(const Descriptor &descriptor) {
     return tmp_buffer;
 }
 
-android::hardware::graphics::mapper::V4_0::Error retain(buffer_handle_t handle) {
-    int err = mali_gralloc_reference_retain(handle);
-    if (err == -EINVAL) {
-        return android::hardware::graphics::mapper::V4_0::Error::BAD_BUFFER;
-    } else if (err) {
-        return android::hardware::graphics::mapper::V4_0::Error::NO_RESOURCES;
-    }
-    return android::hardware::graphics::mapper::V4_0::Error::NONE;
-}
+int freeImportedHandle(void *handle)
+{
+    using android::hardware::graphics::mapper::V4_0::IMapper;
+    using android::hardware::graphics::mapper::V4_0::Error;
 
-android::hardware::graphics::mapper::V4_0::Error release(buffer_handle_t handle) {
-    int err = mali_gralloc_reference_release(handle, true);
-    if (err) {
-        return android::hardware::graphics::mapper::V4_0::Error::BAD_BUFFER;
+    const private_handle_t *hnd = static_cast<private_handle_t *>(handle);
+
+    struct UnmapWork { void *base; size_t alloc_size; };
+    std::vector<UnmapWork> work(hnd->fd_count);
+
+    for (size_t i = 0; i < hnd->fd_count; ++i)
+    {
+        work[i].base = reinterpret_cast<void*>(hnd->bases[i]);
+        work[i].alloc_size = hnd->alloc_sizes[i];
     }
-    return android::hardware::graphics::mapper::V4_0::Error::NONE;
+
+    static android::sp<IMapper> mapper = IMapper::getService();
+    if (!mapper)
+    {
+        ALOGE("libGralloc4Wrapper: %s failed to get a mapper", __func__);
+        return -1;
+    }
+
+    if (mapper->freeBuffer(handle) != Error::NONE)
+    {
+        ALOGE("libGralloc4Wrapper: %s couldn't freeBuffer(%p\n", __func__, handle);
+        return -1;
+    }
+
+    {
+        bool unmapFailed = false;
+        for (const UnmapWork &w : work)
+        {
+            if (!w.base) { continue; }
+            if (int ret = munmap(w.base, w.alloc_size); ret)
+            {
+                ALOGE("libGralloc4Wrapper: %s couldn't unmap address %p (size %zu): %s", __func__, w.base, w.alloc_size, strerror(ret));
+                unmapFailed = true;
+            }
+        }
+        if (unmapFailed) { return -1; }
+    }
+
+    return 0;
 }
 
 }  // namespace android::hardware::graphics::allocator::priv
