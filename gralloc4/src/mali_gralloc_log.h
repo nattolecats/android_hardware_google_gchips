@@ -21,12 +21,27 @@
 #define LOG_TAG "mali_gralloc"
 #endif
 
+#include <mutex>
+#include <string>
+#include <vector>
+
 #include <log/log.h>
 
-/* Delegate logging to Android */
-#define MALI_GRALLOC_LOGI(...) ALOGI(__VA_ARGS__)
-#define MALI_GRALLOC_LOGV(...) ALOGV(__VA_ARGS__)
-#define MALI_GRALLOC_LOGW(...) ALOGW(__VA_ARGS__)
-#define MALI_GRALLOC_LOGE(...) ALOGE(__VA_ARGS__)
+enum class LogLevel {
+  INFO,
+  VERBOSE,
+  WARNING,
+  ERROR
+};
+
+void log_setup();
+void log_later(LogLevel level, const char* fmt, ...);
+void log_commit();
+void log_info_verbose_as_warning();
+
+#define MALI_GRALLOC_LOGI(...) log_later(LogLevel::INFO, __VA_ARGS__);
+#define MALI_GRALLOC_LOGV(...) log_later(LogLevel::VERBOSE, __VA_ARGS__);
+#define MALI_GRALLOC_LOGW(...) log_later(LogLevel::WARNING, __VA_ARGS__);
+#define MALI_GRALLOC_LOGE(...) log_later(LogLevel::ERROR, __VA_ARGS__);
 
 #endif

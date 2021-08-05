@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+#include <hwbinder/IPCThreadState.h>
+
 #include "GrallocAllocator.h"
 #include "hidl_common/BufferDescriptor.h"
 #include "hidl_common/Allocator.h"
@@ -31,6 +33,11 @@ using android::hardware::hidl_vec;
 using android::hardware::Void;
 using android::hardware::hidl_string;
 
+unsigned long callingPid() {
+	android::hardware::IPCThreadState* ipc = android::hardware::IPCThreadState::self();
+	return static_cast<unsigned long>(ipc->getCallingPid());
+}
+
 GrallocAllocator::GrallocAllocator()
 {
 }
@@ -42,6 +49,9 @@ GrallocAllocator::~GrallocAllocator()
 
 Return<void> GrallocAllocator::allocate(const BufferDescriptor &descriptor, uint32_t count, allocate_cb hidl_cb)
 {
+	log_setup();
+	MALI_GRALLOC_LOGV("Allocation request from process: %lu", callingPid());
+
 	buffer_descriptor_t bufferDescriptor;
 	if (!mapper::common::grallocDecodeBufferDescriptor(descriptor, bufferDescriptor))
 	{

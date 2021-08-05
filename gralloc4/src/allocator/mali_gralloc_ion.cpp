@@ -608,6 +608,12 @@ int mali_gralloc_ion_allocate(const gralloc_buffer_descriptor_t *descriptors,
 			if (ion_fd >= 0 && fidx == 0) {
 				fds[fidx] = ion_fd;
 			} else {
+				// Warn of high memory allocation on size request greater than 200M
+				if (bufDescriptor->alloc_sizes[fidx] > static_cast<uint64_t>(200ull << 20)) {
+					log_info_verbose_as_warning();
+					MALI_GRALLOC_LOGW("Huge memory allocation: %" PRIu64, bufDescriptor->alloc_sizes[fidx]);
+				}
+
 				fds[fidx] = dev->alloc_from_ion_heap(usage, bufDescriptor->alloc_sizes[fidx], ion_flags, &min_pgsz);
 			}
 			if (fds[fidx] < 0)
