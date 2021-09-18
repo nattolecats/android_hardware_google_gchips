@@ -446,22 +446,17 @@ static void update_yv12_stride(int8_t plane,
 {
 	if (plane == 0)
 	{
-		/*
-		 * Ensure luma stride is aligned to "2*lcm(hw_align, cpu_align)" so
-		 * that chroma stride can satisfy both CPU and HW alignment
-		 * constraints when only half luma stride (as mandated for format).
-		 */
-		*byte_stride = GRALLOC_ALIGN(luma_stride, 2 * stride_align);
+		*byte_stride = GRALLOC_ALIGN(luma_stride, stride_align);
 	}
 	else
 	{
 		/*
 		 * Derive chroma stride from luma and verify it is:
-		 * 1. Aligned to lcm(hw_align, cpu_align)
+		 * 1. Aligned to "1/2*lcm(hw_align, cpu_align)"
 		 * 2. Multiple of 16px (16 bytes)
 		 */
 		*byte_stride = luma_stride / 2;
-		assert(*byte_stride == GRALLOC_ALIGN(*byte_stride, stride_align));
+		assert(*byte_stride == GRALLOC_ALIGN(*byte_stride, stride_align / 2));
 		assert(*byte_stride & 15 == 0);
 	}
 }
@@ -611,6 +606,10 @@ static void calc_allocation_size(const int width,
 			/*
 			 * Update YV12 stride with both CPU & HW usage due to constraint of chroma stride.
 			 * Width is anyway aligned to 16px for luma and chroma (has_cpu_usage).
+                         *
+                         * Note: To prevent luma stride misalignment with GPU stride alignment.
+                         * The luma plane will maintain the same `stride` size, and the chroma plane
+                         * will align to `stride/2`.
 			 */
 			if (format.id == MALI_GRALLOC_FORMAT_INTERNAL_YV12 && has_hw_usage && has_cpu_usage)
 			{
