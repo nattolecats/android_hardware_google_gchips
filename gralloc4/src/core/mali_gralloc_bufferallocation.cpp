@@ -446,7 +446,7 @@ static void update_yv12_stride(int8_t plane,
 {
 	if (plane == 0)
 	{
-		*byte_stride = GRALLOC_ALIGN(luma_stride, stride_align);
+		*byte_stride = GRALLOC_ALIGN(luma_stride, GRALLOC_ALIGN(stride_align, 32));
 	}
 	else
 	{
@@ -456,7 +456,7 @@ static void update_yv12_stride(int8_t plane,
 		 * 2. Multiple of 16px (16 bytes)
 		 */
 		*byte_stride = luma_stride / 2;
-		assert(*byte_stride == GRALLOC_ALIGN(*byte_stride, stride_align / 2));
+		assert(*byte_stride == GRALLOC_ALIGN(*byte_stride, GRALLOC_ALIGN(stride_align / 2, 16)));
 		assert(*byte_stride & 15 == 0);
 	}
 }
