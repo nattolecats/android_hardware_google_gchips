@@ -238,6 +238,20 @@ static std::vector<std::vector<PlaneLayoutComponent>> plane_layout_components_fr
 		/* AFBC Only FourCC */
 		{.drm_fourcc = DRM_FORMAT_YUV420_8BIT, .components = { {} } },
 		{.drm_fourcc = DRM_FORMAT_YUV420_10BIT, .components = { {} } },
+
+		/* Google specific formats */
+		{
+			.drm_fourcc = DRM_FORMAT_R8,
+			.components = {
+				{ { R, 0, 8 } }
+			}
+		},
+		{
+			.drm_fourcc = DRM_FORMAT_RG88,
+			.components = {
+				{ { R, 0, 8 }, { G, 8, 8 } }
+			}
+		},
 	};
 	/* clang-format on */
 
