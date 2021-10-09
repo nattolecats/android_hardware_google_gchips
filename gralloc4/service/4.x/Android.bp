@@ -29,8 +29,12 @@ cc_binary {
 	init_rc: [
 		"android.hardware.graphics.allocator@4.0-service.rc",
 	],
+	header_libs: [
+		"libgralloc_headers",
+	],
 	shared_libs: [
 		"android.hardware.graphics.allocator@4.0",
+		"android.hardware.graphics.allocator@4.0-impl",
 		"libhidlbase",
 		"liblog",
 		"libutils",
