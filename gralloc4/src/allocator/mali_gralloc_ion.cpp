@@ -523,6 +523,7 @@ void mali_gralloc_ion_free(private_handle_t * const hnd)
 		hnd->fds[i] = -1;
 		hnd->bases[i] = 0;
 	}
+	delete hnd;
 }
 
 static void mali_gralloc_ion_free_internal(buffer_handle_t * const pHandle,

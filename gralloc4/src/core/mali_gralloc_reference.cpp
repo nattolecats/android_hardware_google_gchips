@@ -116,8 +116,6 @@ int mali_gralloc_reference_release(buffer_handle_t handle, bool canFree)
 		{
 			mali_gralloc_dump_buffer_erase(hnd);
 			mali_gralloc_buffer_free(handle);
-			delete handle;
-
 		}
 	}
 	else if (hnd->remote_pid == getpid()) // never unmap buffers that were not imported into this process
