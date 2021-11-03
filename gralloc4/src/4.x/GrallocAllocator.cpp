@@ -51,7 +51,6 @@ GrallocAllocator::~GrallocAllocator()
 
 Return<void> GrallocAllocator::allocate(const BufferDescriptor &descriptor, uint32_t count, allocate_cb hidl_cb)
 {
-	log_setup();
 	MALI_GRALLOC_LOGV("Allocation request from process: %lu", callingPid());
 
 	buffer_descriptor_t bufferDescriptor;

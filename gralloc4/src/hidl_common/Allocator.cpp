@@ -134,7 +134,6 @@ void allocate(const buffer_descriptor_t &bufferDescriptor, uint32_t count, IAllo
 	{
 		hidlBuffers.setToExternal(grallocBuffers.data(), grallocBuffers.size());
 	}
-	log_commit();
 	hidl_cb(error, stride, hidlBuffers);
 
 	/* The application should import the Gralloc buffers using IMapper for

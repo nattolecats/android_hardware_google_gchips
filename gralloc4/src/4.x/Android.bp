@@ -85,7 +85,6 @@ cc_library_shared {
 		"GrallocAllocator.cpp",
 		":libgralloc_hidl_common_allocator",
 		":libgralloc_hidl_common_shared_metadata",
-		":libgralloc_src_log",
 	],
 	include_dirs: [
 		"hardware/google/gchips/include",
@@ -109,7 +108,6 @@ cc_library_shared {
 		":libgralloc_hidl_common_mapper",
 		":libgralloc_hidl_common_mapper_metadata",
 		":libgralloc_hidl_common_shared_metadata",
-		":libgralloc_src_log",
 	],
 	include_dirs: [
 		"hardware/google/gchips/include",

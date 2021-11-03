@@ -35,13 +35,6 @@ cc_library_headers {
 	],
 }
 
-filegroup {
-	name: "libgralloc_src_log",
-	srcs: [
-		"mali_gralloc_log.cpp",
-	],
-}
-
 cc_library_shared {
 	name: "libGralloc4Wrapper",
 	vendor: true,
@@ -56,7 +49,6 @@ cc_library_shared {
 		"core/mali_gralloc_reference.cpp",
 		"core/mali_gralloc_debug.cpp",
 		":libgralloc_hidl_common_shared_metadata",
-		":libgralloc_src_log",
 	],
 	cflags: [
 		"-DGRALLOC_LIBRARY_BUILD=1",
