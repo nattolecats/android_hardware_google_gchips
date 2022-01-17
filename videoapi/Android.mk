@@ -19,6 +19,12 @@ include $(CLEAR_VARS)
 LOCAL_MODULE_TAGS := optional
 LOCAL_PROPRIETARY_MODULE := true
 
+LOCAL_CFLAGS :=
+
+ifeq ($(BOARD_USE_FULL_ST2094_40), true)
+LOCAL_CFLAGS += -DUSE_FULL_ST2094_40
+endif
+
 LOCAL_SRC_FILES := \
 	VendorVideoAPI.cpp
 
