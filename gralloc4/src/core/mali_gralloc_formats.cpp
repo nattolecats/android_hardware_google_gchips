@@ -615,7 +615,7 @@ static format_support_flags is_format_supported(const int32_t fmt_idx,
 			}
 		}
 
-		if (usage & MALI_GRALLOC_USAGE_FRONTBUFFER)
+		if (usage & GRALLOC_USAGE_FRONT_BUFFER)
 		{
 			if ((producer_caps & consumer_caps & MALI_GRALLOC_FORMAT_CAPABILITY_AFBC_DOUBLE_BODY) == 0)
 			{
@@ -831,7 +831,7 @@ static uint64_t get_afbc_format(const uint32_t base_format,
 			{
 				alloc_format |= MALI_GRALLOC_INTFMT_AFBC_TILED_HEADERS;
 
-				if (usage & MALI_GRALLOC_USAGE_FRONTBUFFER &&
+				if (usage & GRALLOC_USAGE_FRONT_BUFFER &&
 				    producer_caps & consumer_caps & MALI_GRALLOC_FORMAT_CAPABILITY_AFBC_DOUBLE_BODY)
 				{
 					alloc_format |= MALI_GRALLOC_INTFMT_AFBC_DOUBLE_BODY;
