@@ -32,6 +32,8 @@
 /* BufferUsage is not defined in 1.2/types.h as there are no changes from previous version */
 namespace hidl_common = android::hardware::graphics::common::V1_1;
 
+#include <aidl/android/hardware/graphics/common/BufferUsage.h>
+namespace aidl_common = aidl::android::hardware::graphics::common;
 
 /* Local macro definitions to emulate Gralloc 1.0 usage interface */
 #define GRALLOC_USAGE_PRIVATE_0 1ULL << 28
@@ -106,6 +108,7 @@ typedef enum
 
 #define GRALLOC_USAGE_SENSOR_DIRECT_DATA static_cast<uint64_t>(hidl_common::BufferUsage::SENSOR_DIRECT_DATA)
 #define GRALLOC_USAGE_GPU_DATA_BUFFER static_cast<uint64_t>(hidl_common::BufferUsage::GPU_DATA_BUFFER)
+#define GRALLOC_USAGE_FRONT_BUFFER static_cast<uint64_t>(aidl_common::BufferUsage::FRONT_BUFFER)
 
 
 /* Originally (Gralloc 0.x), Android did not provide an explicit DECODER usage. This was rectified in Android N-MR1/7.1
@@ -134,6 +137,7 @@ static const uint64_t VALID_USAGE =
      * are mapped to the same value (1U << 23). */
     GRALLOC_USAGE_SENSOR_DIRECT_DATA |      /* 1U << 23 */
     GRALLOC_USAGE_GPU_DATA_BUFFER |         /* 1U << 24 */
+    GRALLOC_USAGE_FRONT_BUFFER |            /* 1U << 32 */
 
     /* Google specific usages */
     GRALLOC_USAGE_GOOGLE_IP_BO |            /* 1U << 51 */
