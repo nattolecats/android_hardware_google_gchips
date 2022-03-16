@@ -24,6 +24,7 @@
 #include "mali_gralloc_buffer.h"
 #include "mali_gralloc_formats.h"
 #include "hidl_common/SharedMetadata.h"
+#include "hidl_common/SharedMetadata_struct.h"
 #include "exynos_format.h"
 
 using namespace android;
@@ -253,7 +254,8 @@ void* VendorGraphicBufferMeta::get_video_metadata_roiinfo(buffer_handle_t hnd)
 		return nullptr;
 
 	if (gralloc_hnd->get_usage() & VendorGraphicBufferUsage::ROIINFO)
-		return static_cast<char*>(gralloc_hnd->attr_base) + SZ_4k * 2;
+		return static_cast<char*>(gralloc_hnd->attr_base) +
+			sizeof(shared_metadata) + gralloc_hnd->reserved_region_size;
 
 	return nullptr;
 }
