@@ -22,7 +22,6 @@
 #include "allocator/mali_gralloc_ion.h"
 #include "allocator/mali_gralloc_shared_memory.h"
 #include "mali_gralloc_bufferallocation.h"
-#include "mali_gralloc_debug.h"
 #include "mali_gralloc_reference.h"
 #include "mali_gralloc_usages.h"
 
@@ -114,7 +113,6 @@ int mali_gralloc_reference_release(buffer_handle_t handle, bool canFree)
 
 		if (hnd->ref_count == 0 && canFree)
 		{
-			mali_gralloc_dump_buffer_erase(hnd);
 			mali_gralloc_buffer_free(handle);
 		}
 	}
