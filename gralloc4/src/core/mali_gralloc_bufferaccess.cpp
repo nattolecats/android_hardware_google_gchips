@@ -154,7 +154,7 @@ int validate_lock_input_parameters(const buffer_handle_t buffer, const int l,
 	 * will have a valid buffer virtual address if it is the allocating
 	 * process or it retained / registered a cloned buffer handle
 	 */
-	if ((hnd->allocating_pid == lock_pid) || (hnd->remote_pid == lock_pid))
+	if (hnd->remote_pid == lock_pid)
 	{
 		is_registered_process = true;
 	}

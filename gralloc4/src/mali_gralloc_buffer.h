@@ -215,7 +215,6 @@ struct private_handle_t
 	uint64_t backing_store_id DEFAULT_INITIALIZER(0x0);
 	int cpu_read DEFAULT_INITIALIZER(0);               /**< Buffer is locked for CPU read when non-zero. */
 	int cpu_write DEFAULT_INITIALIZER(0);              /**< Buffer is locked for CPU write when non-zero. */
-	int allocating_pid DEFAULT_INITIALIZER(0);
 	int remote_pid DEFAULT_INITIALIZER(-1);
 	int ref_count DEFAULT_INITIALIZER(0);
 	// locally mapped shared attribute area
@@ -265,7 +264,6 @@ struct private_handle_t
 		stride = _stride;
 		alloc_format = _alloc_format;
 		layer_count = _layer_count;
-		allocating_pid = getpid();
 		ref_count = 1;
 		version = sizeof(native_handle);
 		set_numfds(fd_count);
