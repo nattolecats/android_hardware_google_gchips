@@ -50,6 +50,11 @@
  */
 #define MAX_PLANES 3
 
+/*
+ * Maximum number of fds in a private_handle_t.
+ */
+#define MAX_FDS 5
+
 #ifdef __cplusplus
 #define DEFAULT_INITIALIZER(x) = x
 #else
@@ -155,7 +160,7 @@ struct private_handle_t
 	 * DO NOT MOVE THIS ELEMENT!
 	 */
 	union {
-		int fds[5];
+		int fds[MAX_FDS];
 	};
 
 	// ints
@@ -215,8 +220,6 @@ struct private_handle_t
 	uint64_t backing_store_id DEFAULT_INITIALIZER(0x0);
 	int cpu_read DEFAULT_INITIALIZER(0);               /**< Buffer is locked for CPU read when non-zero. */
 	int cpu_write DEFAULT_INITIALIZER(0);              /**< Buffer is locked for CPU write when non-zero. */
-	int remote_pid DEFAULT_INITIALIZER(-1);
-	int ref_count DEFAULT_INITIALIZER(0);
 	// locally mapped shared attribute area
 
 	int ion_handles[3];
@@ -264,7 +267,6 @@ struct private_handle_t
 		stride = _stride;
 		alloc_format = _alloc_format;
 		layer_count = _layer_count;
-		ref_count = 1;
 		version = sizeof(native_handle);
 		set_numfds(fd_count);
 		memcpy(plane_info, _plane_info, sizeof(plane_info_t) * MAX_PLANES);
