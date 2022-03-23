@@ -89,7 +89,7 @@ int mali_gralloc_reference_map(buffer_handle_t handle) {
 	return retval;
 }
 
-int mali_gralloc_reference_release(buffer_handle_t handle, bool canFree)
+int mali_gralloc_reference_release(buffer_handle_t handle)
 {
 	if (private_handle_t::validate(handle) < 0)
 	{
@@ -111,7 +111,7 @@ int mali_gralloc_reference_release(buffer_handle_t handle, bool canFree)
 	{
 		hnd->ref_count--;
 
-		if (hnd->ref_count == 0 && canFree)
+		if (hnd->ref_count == 0)
 		{
 			mali_gralloc_buffer_free(handle);
 		}

@@ -90,7 +90,7 @@ static Error unregisterBuffer(buffer_handle_t bufferHandle)
 		return Error::BAD_BUFFER;
 	}
 
-	const int status = mali_gralloc_reference_release(bufferHandle, true);
+	const int status = mali_gralloc_reference_release(bufferHandle);
 	if (status != 0)
 	{
 		MALI_GRALLOC_LOGE("Unable to release buffer:%p", bufferHandle);
