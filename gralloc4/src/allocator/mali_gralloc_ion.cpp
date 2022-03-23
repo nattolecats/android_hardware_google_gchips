@@ -588,7 +588,8 @@ int mali_gralloc_ion_allocate(const gralloc_buffer_descriptor_t *descriptors,
 	uint32_t i;
 	unsigned int ion_flags = 0;
 	int min_pgsz = 0;
-	int fds[5] = {-1, -1, -1, -1, -1};
+	int fds[MAX_FDS];
+	std::fill(fds, fds + MAX_FDS, -1);
 
 	ion_device *dev = ion_device::get();
 	if (!dev)
