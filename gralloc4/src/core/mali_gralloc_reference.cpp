@@ -37,8 +37,8 @@ private:
     // should become the only place where address mapping is maintained and can be
     // queried from.
     struct MappedData {
-        void *bases[MAX_FDS] = {};
-        size_t alloc_sizes[MAX_FDS] = {};
+        void *bases[MAX_BUFFER_FDS] = {};
+        size_t alloc_sizes[MAX_BUFFER_FDS] = {};
         uint64_t ref_count = 0;
     };
 
@@ -81,7 +81,7 @@ private:
             return error;
         }
 
-        for (auto i = 0; i < hnd->fd_count; i++) {
+        for (auto i = 0; i < MAX_BUFFER_FDS; i++) {
             data.bases[i] = reinterpret_cast<void *>(hnd->bases[i]);
             data.alloc_sizes[i] = hnd->alloc_sizes[i];
         }
@@ -104,7 +104,7 @@ private:
 
         auto &data = *(it->second.get());
         if (data.bases[0] != nullptr) {
-            for (auto i = 0; i < hnd->fd_count; i++) {
+            for (auto i = 0; i < MAX_BUFFER_FDS; i++) {
                 if (data.bases[i] != reinterpret_cast<void *>(hnd->bases[i]) ||
                     data.alloc_sizes[i] != hnd->alloc_sizes[i]) {
                     MALI_GRALLOC_LOGE(
@@ -113,7 +113,7 @@ private:
                 }
             }
         } else {
-            for (auto i = 0; i < hnd->fd_count; i++) {
+            for (auto i = 0; i < MAX_BUFFER_FDS; i++) {
                 if (hnd->bases[i] != 0 || data.bases[i] != nullptr) {
                     MALI_GRALLOC_LOGE("Validation failed: Expected nullptr for unmaped buffer");
                     return -EINVAL;
@@ -150,7 +150,7 @@ public:
                 return -EINVAL;
             }
 
-            for (int i = 0; i < hnd->fd_count; i++) {
+            for (int i = 0; i < MAX_BUFFER_FDS; i++) {
                 hnd->bases[i] = 0;
             }
         } else if (it->second->ref_count == 0) {
