@@ -47,7 +47,7 @@ using android::hardware::graphics::mapper::V4_0::Error;
 int mali_gralloc_reference_validate(buffer_handle_t handle) {
 	auto hnd = static_cast<const private_handle_t *>(handle);
 
-	if (hnd->allocating_pid != getpid() && hnd->remote_pid != getpid()) {
+	if (hnd->remote_pid != getpid()) {
 		return -EINVAL;
 	}
 
