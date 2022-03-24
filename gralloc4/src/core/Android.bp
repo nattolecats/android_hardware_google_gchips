@@ -59,7 +59,6 @@ arm_gralloc_core_cc_defaults {
 		"mali_gralloc_bufferdescriptor.cpp",
 		"mali_gralloc_formats.cpp",
 		"mali_gralloc_reference.cpp",
-		"mali_gralloc_debug.cpp",
 		"format_info.cpp",
 	],
 	include_dirs: [
