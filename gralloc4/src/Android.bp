@@ -47,11 +47,11 @@ cc_library_shared {
 		"core/mali_gralloc_bufferallocation.cpp",
 		"core/mali_gralloc_bufferdescriptor.cpp",
 		"core/mali_gralloc_reference.cpp",
-		"core/mali_gralloc_debug.cpp",
 		":libgralloc_hidl_common_shared_metadata",
 	],
 	cflags: [
 		"-DGRALLOC_LIBRARY_BUILD=1",
+		"-Wthread-safety",
 	],
 	static_libs: [
 		"libgralloc_capabilities",
