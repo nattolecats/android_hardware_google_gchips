@@ -146,7 +146,7 @@ const format_ip_support_t formats_ip_support[] = {
 	/* 420 (10-bit) */
 	{ .id = MALI_GRALLOC_FORMAT_INTERNAL_YUV420_10BIT_I,      .cpu_rd = F_NONE, .cpu_wr = F_NONE, .gpu_rd = F_AFBC,       .gpu_wr = F_AFBC,       .dpu_rd = F_AFBC,       .dpu_wr = F_NONE, .dpu_aeu_wr = F_AFBC, .vpu_rd = F_AFBC, .vpu_wr = F_AFBC, .cam_wr = F_NONE,  },
 	{ .id = MALI_GRALLOC_FORMAT_INTERNAL_Y0L2,                .cpu_rd = F_LIN,  .cpu_wr = F_LIN,  .gpu_rd = F_LIN,        .gpu_wr = F_LIN,        .dpu_rd = F_LIN,        .dpu_wr = F_NONE, .dpu_aeu_wr = F_NONE, .vpu_rd = F_LIN,  .vpu_wr = F_LIN,  .cam_wr = F_NONE,  },
-	{ .id = MALI_GRALLOC_FORMAT_INTERNAL_P010,                .cpu_rd = F_LIN,  .cpu_wr = F_LIN,  .gpu_rd = F_LIN,        .gpu_wr = F_LIN,        .dpu_rd = F_LIN,        .dpu_wr = F_NONE, .dpu_aeu_wr = F_NONE, .vpu_rd = F_LIN,  .vpu_wr = F_LIN,  .cam_wr = F_NONE,  },
+	{ .id = MALI_GRALLOC_FORMAT_INTERNAL_P010,                .cpu_rd = F_LIN,  .cpu_wr = F_LIN,  .gpu_rd = F_LIN,        .gpu_wr = F_LIN,        .dpu_rd = F_LIN,        .dpu_wr = F_NONE, .dpu_aeu_wr = F_NONE, .vpu_rd = F_LIN,  .vpu_wr = F_LIN,  .cam_wr = F_LIN,  },
 	/* 422 (10-bit) */
 	{ .id = MALI_GRALLOC_FORMAT_INTERNAL_Y210,                .cpu_rd = F_LIN,  .cpu_wr = F_LIN,  .gpu_rd = F_LIN|F_AFBC, .gpu_wr = F_LIN|F_AFBC, .dpu_rd = F_NONE,       .dpu_wr = F_NONE, .dpu_aeu_wr = F_NONE, .vpu_rd = F_NONE, .vpu_wr = F_NONE, .cam_wr = F_NONE,  },
 	{ .id = MALI_GRALLOC_FORMAT_INTERNAL_P210,                .cpu_rd = F_LIN,  .cpu_wr = F_LIN,  .gpu_rd = F_LIN,        .gpu_wr = F_LIN,        .dpu_rd = F_NONE,       .dpu_wr = F_NONE, .dpu_aeu_wr = F_NONE, .vpu_rd = F_NONE, .vpu_wr = F_NONE, .cam_wr = F_NONE,  },
