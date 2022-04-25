@@ -16,10 +16,13 @@
  * limitations under the License.
  */
 
+#define ATRACE_TAG ATRACE_TAG_GRAPHICS
+
 #include <inttypes.h>
 #include <assert.h>
 #include <atomic>
 #include <algorithm>
+#include <utils/Trace.h>
 
 #include <hardware/hardware.h>
 #include <hardware/gralloc1.h>
@@ -1097,6 +1100,7 @@ int mali_gralloc_buffer_allocate(const gralloc_buffer_descriptor_t *descriptors,
                                  uint32_t numDescriptors, buffer_handle_t *pHandle, bool *shared_backend,
                                  int fd)
 {
+	ATRACE_CALL();
 	bool shared = false;
 	uint64_t backing_store_id = 0x0;
 	int err;
