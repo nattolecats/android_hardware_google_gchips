@@ -16,8 +16,8 @@
 
 #pragma once
 
-#if __has_include(<video/mfc_macros.h>)
-#include <video/mfc_macros.h>
+#if __has_include(<linux/videodev2_exynos_media.h>)
+#include <linux/videodev2_exynos_media.h>
 #else
 #include "mfc_macros_local.h"
 #endif
