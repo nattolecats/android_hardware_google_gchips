@@ -177,6 +177,9 @@ struct private_handle_t
 	int magic DEFAULT_INITIALIZER(sMagic);
 	int flags DEFAULT_INITIALIZER(0);
 
+	/*
+	 * Number of dmabuf fds, NOT including the metadata fd
+	 */
 	int fd_count DEFAULT_INITIALIZER(1);
 
 	/*
