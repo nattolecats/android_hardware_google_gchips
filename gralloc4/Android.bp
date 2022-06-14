@@ -63,6 +63,7 @@ arm_gralloc_cc_defaults {
 	cflags: [
 		"-Wundef",
 		"-Werror",
+		"-Wthread-safety",
 		"-DGRALLOC_LIBRARY_BUILD=1",
 		"-DDISABLE_FRAMEBUFFER_HAL=1",
 		"-DGRALLOC_USE_LEGACY_CALCS=0",
