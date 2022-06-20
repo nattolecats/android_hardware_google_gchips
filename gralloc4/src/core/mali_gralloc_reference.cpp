@@ -76,16 +76,6 @@ private:
             return 0;
         }
 
-        for (auto i = 0; i < MAX_BUFFER_FDS; i++) {
-            auto size = get_buffer_size(hnd->fds[i]);
-            auto size_padding = size - (off_t)hnd->alloc_sizes[i];
-            if ((size != -1) && ((size_padding < 0) || (size_padding > PAGE_SIZE))){
-                MALI_GRALLOC_LOGE("Found an imported buffer with out-of-bounds size %" PRIu64 "",
-                                  hnd->alloc_sizes[i]);
-                return -EINVAL;
-            }
-        }
-
         int error = mali_gralloc_ion_map(hnd);
         if (error != 0) {
             return error;
@@ -125,20 +115,13 @@ private:
         } else {
             for (auto i = 0; i < MAX_BUFFER_FDS; i++) {
                 if (hnd->bases[i] != 0 || data.bases[i] != nullptr) {
-                    MALI_GRALLOC_LOGE("Validation failed: Expected nullptr for unmapped buffer");
+                    MALI_GRALLOC_LOGE("Validation failed: Expected nullptr for unmaped buffer");
                     return -EINVAL;
                 }
             }
         }
 
         return 0;
-    }
-
-    off_t get_buffer_size(unsigned int fd) {
-        off_t current = lseek(fd, 0, SEEK_CUR);
-        off_t size = lseek(fd, 0, SEEK_END);
-        lseek(fd, current, SEEK_SET);
-        return size;
     }
 
 public:
