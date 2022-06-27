@@ -21,6 +21,7 @@
 #include <android-base/thread_annotations.h>
 #include <hardware/gralloc1.h>
 
+#include <algorithm>
 #include <map>
 #include <mutex>
 
@@ -58,6 +59,54 @@ private:
         return hnd->get_usage() & cpu_access_usage;
     }
 
+    static off_t get_buffer_size(unsigned int fd) {
+        off_t current = lseek(fd, 0, SEEK_CUR);
+        off_t size = lseek(fd, 0, SEEK_END);
+        lseek(fd, current, SEEK_SET);
+        return size;
+    }
+
+    static bool dmabuf_sanity_check(buffer_handle_t handle) {
+        private_handle_t *hnd =
+                static_cast<private_handle_t *>(const_cast<native_handle_t *>(handle));
+
+        int valid_fd_count = std::find(hnd->fds, hnd->fds + MAX_FDS, -1) - hnd->fds;
+        // One fd is reserved for metadata which is not accounted for in fd_count
+        if (hnd->fd_count != valid_fd_count - 1) {
+            MALI_GRALLOC_LOGE("%s failed: count of valid buffer fds does not match fd_count",
+                              __func__);
+            return false;
+        }
+
+        auto check_pid = [&](int fd, uint64_t allocated_size) -> bool {
+            auto size = get_buffer_size(fd);
+            auto size_padding = size - (off_t)allocated_size;
+            if ((size != -1) && ((size_padding < 0) || (size_padding > PAGE_SIZE))) {
+                MALI_GRALLOC_LOGE("%s failed: fd (%d) size (%jd) is not within a PAGE_SIZE of "
+                                  "expected size (%" PRIx64 ")",
+                                  __func__, fd, static_cast<intmax_t>(size), allocated_size);
+                return false;
+            }
+            return true;
+        };
+
+        // Check client facing dmabufs
+        for (auto i = 0; i < hnd->fd_count; i++) {
+            if (!check_pid(hnd->fds[i], hnd->alloc_sizes[i])) {
+                MALI_GRALLOC_LOGE("%s failed: Size check failed for alloc_sizes[%d]", __func__, i);
+                return false;
+            }
+        }
+
+        // Check metadata dmabuf
+        if (!check_pid(hnd->get_share_attr_fd(), hnd->attr_size)) {
+            MALI_GRALLOC_LOGE("%s failed: Size check failed for metadata fd", __func__);
+            return false;
+        }
+
+        return true;
+    }
+
     int map_locked(buffer_handle_t handle) REQUIRES(lock) {
         private_handle_t *hnd = (private_handle_t *)handle;
         auto it = buffer_map.find(hnd);
@@ -72,8 +121,13 @@ private:
             MALI_GRALLOC_LOGE("BUG: Found an imported buffer with ref count 0, expect errors");
         }
 
+        // Return early if buffer is already mapped
         if (data.bases[0] != nullptr) {
             return 0;
+        }
+
+        if (!dmabuf_sanity_check(handle)) {
+            return -EINVAL;
         }
 
         int error = mali_gralloc_ion_map(hnd);
@@ -115,7 +169,7 @@ private:
         } else {
             for (auto i = 0; i < MAX_BUFFER_FDS; i++) {
                 if (hnd->bases[i] != 0 || data.bases[i] != nullptr) {
-                    MALI_GRALLOC_LOGE("Validation failed: Expected nullptr for unmaped buffer");
+                    MALI_GRALLOC_LOGE("Validation failed: Expected nullptr for unmapped buffer");
                     return -EINVAL;
                 }
             }

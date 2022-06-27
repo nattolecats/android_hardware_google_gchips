@@ -15,6 +15,13 @@
  * limitations under the License.
  */
 
+soong_namespace {
+	imports: [
+		"hardware/google/graphics/common",
+		"hardware/google/gchips",
+	]
+}
+
 package {
     default_applicable_licenses: ["Android-Apache-2.0"],
 }
