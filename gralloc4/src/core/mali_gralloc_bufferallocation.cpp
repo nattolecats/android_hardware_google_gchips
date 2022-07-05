@@ -39,6 +39,9 @@
 
 #define EXT_SIZE       256
 
+/* HW needs extra padding bytes for its prefetcher does not check the picture boundary */
+#define BO_EXT_SIZE (16 * 1024)
+
 /* Default align values for Exynos */
 #define YUV_BYTE_ALIGN_DEFAULT 16
 #define RGB_BYTE_ALIGN_DEFAULT 64
@@ -485,7 +488,7 @@ static bool log_deprecated_usage_flags(uint64_t usage) {
 }
 
 /*
- * Modify usage flag when BO is the producer
+ * Modify usage flag when BO is the producer (decoder) or the consumer (encoder)
  *
  * BO cannot use the flags CPU_READ_RARELY as Codec layer redefines those flags
  * for some internal usage. So, when BO is sending CPU_READ_OFTEN, it still
@@ -523,6 +526,10 @@ static void align_plane_stride(plane_info_t *plane_info, int plane, const format
  * @param alloc_type      [in]    Allocation type inc. whether tiled and/or multi-plane.
  * @param format          [in]    Pixel format.
  * @param has_cpu_usage   [in]    CPU usage requested (in addition to any other).
+ * @param has_hw_usage    [in]    HW usage requested.
+ * @param has_gpu_usage   [in]    GPU usage requested.
+ * @param has_video_usage [in]    Video usage requested.
+ * @param has_camera_usage[in]    Camera usage requested.
  * @param pixel_stride    [out]   Calculated pixel stride.
  * @param size            [out]   Total calculated buffer size including all planes.
  * @param plane_info      [out]   Array of calculated information for each plane. Includes
@@ -535,6 +542,7 @@ static void calc_allocation_size(const int width,
                                  const bool has_cpu_usage,
                                  const bool has_hw_usage,
                                  const bool has_gpu_usage,
+                                 const bool has_BO_video_usage,
                                  const bool has_camera_usage,
                                  int * const pixel_stride,
                                  uint64_t * const size,
@@ -676,6 +684,13 @@ static void calc_allocation_size(const int width,
 		}
 		else
 		{
+			if (has_BO_video_usage && plane &&
+			    (format.id == HAL_PIXEL_FORMAT_GOOGLE_NV12_SP ||
+			     format.id == HAL_PIXEL_FORMAT_GOOGLE_NV12_SP_10B))
+			{
+				/* Make luma and chroma planes have the same stride. */
+				plane_info[plane].byte_stride = plane_info[0].byte_stride;
+			}
 			body_size = plane_info[plane].byte_stride * plane_info[plane].alloc_height;
 		}
 		MALI_GRALLOC_LOGV("Body size: %d", body_size);
@@ -1066,7 +1081,8 @@ int mali_gralloc_derive_format_and_size(buffer_descriptor_t * const bufDescripto
 		                     usage & (GRALLOC_USAGE_SW_READ_MASK | GRALLOC_USAGE_SW_WRITE_MASK),
 		                     usage & ~(GRALLOC_USAGE_PRIVATE_MASK | GRALLOC_USAGE_SW_READ_MASK | GRALLOC_USAGE_SW_WRITE_MASK),
 		                     usage & (GRALLOC_USAGE_HW_TEXTURE | GRALLOC_USAGE_HW_RENDER | GRALLOC_USAGE_GPU_DATA_BUFFER),
-		                     usage & (GRALLOC_USAGE_HW_CAMERA_WRITE | GRALLOC_USAGE_HW_CAMERA_READ),
+		                     (usage & (GRALLOC_USAGE_HW_VIDEO_ENCODER | GRALLOC_USAGE_HW_VIDEO_DECODER)) && (usage & GRALLOC_USAGE_GOOGLE_IP_BO),
+                             usage & (GRALLOC_USAGE_HW_CAMERA_WRITE | GRALLOC_USAGE_HW_CAMERA_READ),
 		                     &bufDescriptor->pixel_stride,
 		                     &bufDescriptor->alloc_sizes[0],
 		                     bufDescriptor->plane_info);
@@ -1111,6 +1127,12 @@ int mali_gralloc_derive_format_and_size(buffer_descriptor_t * const bufDescripto
 	/* MFC requires EXT_SIZE padding */
 	bufDescriptor->alloc_sizes[0] += EXT_SIZE;
 
+	if ((usage & GRALLOC_USAGE_HW_VIDEO_ENCODER) && (usage & GRALLOC_USAGE_GOOGLE_IP_BO))
+	{
+		/* BO HW requires extra padding bytes */
+		bufDescriptor->alloc_sizes[0] += BO_EXT_SIZE;
+	}
+
 	return 0;
 }
 
@@ -1130,13 +1152,16 @@ int mali_gralloc_buffer_allocate(const gralloc_buffer_descriptor_t *descriptors,
 
 		assert(bufDescriptor->producer_usage == bufDescriptor->consumer_usage);
 		uint64_t usage = bufDescriptor->producer_usage;
-		if ((usage & hidl_common::BufferUsage::VIDEO_DECODER) && (usage & GRALLOC_USAGE_GOOGLE_IP_BO)) {
+		if (((usage & hidl_common::BufferUsage::VIDEO_DECODER)||(usage & hidl_common::BufferUsage::VIDEO_ENCODER)) &&
+		    (usage & GRALLOC_USAGE_GOOGLE_IP_BO))
+		{
 			usage = update_usage_for_BO(usage);
 			bufDescriptor->producer_usage = usage;
 			bufDescriptor->consumer_usage = usage;
 		}
 
-		if (log_deprecated_usage_flags(usage)) {
+		if (log_deprecated_usage_flags(usage))
+		{
 			return -EINVAL;
 		}
 
