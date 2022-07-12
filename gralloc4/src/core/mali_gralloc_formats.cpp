@@ -1408,6 +1408,10 @@ uint32_t get_base_format(const uint64_t req_format,
 				base_format = HAL_PIXEL_FORMAT_EXYNOS_YCrCb_420_SP_M;
 			}
 		}
+		else if (get_consumers(usage) & GOOGLE_GRALLOC_CONSUMER_BO)
+		{
+			base_format = HAL_PIXEL_FORMAT_GOOGLE_NV12_SP;
+		}
 		else if (usage & GRALLOC_USAGE_HW_VIDEO_ENCODER)
 		{
 			base_format = HAL_PIXEL_FORMAT_EXYNOS_YCrCb_420_SP_M;    //NV21M narrow
@@ -1428,7 +1432,11 @@ uint32_t get_base_format(const uint64_t req_format,
 	}
 	else if (req_format == HAL_PIXEL_FORMAT_YCbCr_420_888)
 	{
-		if (usage & (GRALLOC_USAGE_HW_VIDEO_ENCODER | GRALLOC_USAGE_HW_VIDEO_DECODER))
+		if (get_consumers(usage) & GOOGLE_GRALLOC_CONSUMER_BO)
+		{
+			base_format = HAL_PIXEL_FORMAT_GOOGLE_NV12_SP;
+		}
+		else if (usage & (GRALLOC_USAGE_HW_VIDEO_ENCODER | GRALLOC_USAGE_HW_VIDEO_DECODER))
 		{
 			base_format = HAL_PIXEL_FORMAT_EXYNOS_YCbCr_420_SP_M;
 		}
@@ -1445,6 +1453,13 @@ uint32_t get_base_format(const uint64_t req_format,
 		{
 			// Flexible framework-accessible YUV format; map to NV21 for now
 			base_format = HAL_PIXEL_FORMAT_YCrCb_420_SP;
+		}
+	}
+	else if (req_format == HAL_PIXEL_FORMAT_YCBCR_P010)
+	{
+		if (get_consumers(usage) & GOOGLE_GRALLOC_CONSUMER_BO)
+		{
+			base_format = HAL_PIXEL_FORMAT_GOOGLE_NV12_SP_10B;
 		}
 	}
 
