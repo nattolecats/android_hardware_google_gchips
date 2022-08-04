@@ -48,6 +48,9 @@
 
 /* IP-specific align values */
 #define GPU_BYTE_ALIGN_DEFAULT 64
+#ifdef SOC_ZUMA
+#define CAMERA_RAW10_BYTE_ALIGN 32
+#endif
 
 /* Always CPU align for Exynos */
 #define CAN_SKIP_CPU_ALIGN 0
@@ -613,6 +616,15 @@ static void calc_allocation_size(const int width,
 				hw_align = std::max(hw_align, static_cast<uint16_t>(GPU_BYTE_ALIGN_DEFAULT));
 			}
 
+#ifdef SOC_ZUMA
+			if (has_camera_usage && format.id == MALI_GRALLOC_FORMAT_INTERNAL_RAW10) {
+				/*
+				 * Camera ISP requires RAW10 buffers to have 32-byte aligned stride
+				 */
+				hw_align = std::max(hw_align, static_cast<uint16_t>(CAMERA_RAW10_BYTE_ALIGN));
+			}
+#endif
+
 			uint32_t cpu_align = 0;
 
 			if (!(has_camera_usage && !has_cpu_usage && format.id == MALI_GRALLOC_FORMAT_INTERNAL_RAW10)) {
@@ -1082,7 +1094,7 @@ int mali_gralloc_derive_format_and_size(buffer_descriptor_t * const bufDescripto
 		                     usage & ~(GRALLOC_USAGE_PRIVATE_MASK | GRALLOC_USAGE_SW_READ_MASK | GRALLOC_USAGE_SW_WRITE_MASK),
 		                     usage & (GRALLOC_USAGE_HW_TEXTURE | GRALLOC_USAGE_HW_RENDER | GRALLOC_USAGE_GPU_DATA_BUFFER),
 		                     (usage & (GRALLOC_USAGE_HW_VIDEO_ENCODER | GRALLOC_USAGE_HW_VIDEO_DECODER)) && (usage & GRALLOC_USAGE_GOOGLE_IP_BO),
-                             usage & (GRALLOC_USAGE_HW_CAMERA_WRITE | GRALLOC_USAGE_HW_CAMERA_READ),
+		                     usage & (GRALLOC_USAGE_HW_CAMERA_WRITE | GRALLOC_USAGE_HW_CAMERA_READ),
 		                     &bufDescriptor->pixel_stride,
 		                     &bufDescriptor->alloc_sizes[0],
 		                     bufDescriptor->plane_info);

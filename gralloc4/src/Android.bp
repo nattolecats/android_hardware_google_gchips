@@ -38,6 +38,9 @@ cc_library_headers {
 cc_library_shared {
 	name: "libGralloc4Wrapper",
 	vendor: true,
+	defaults: [
+		"arm_gralloc_defaults",
+	],
 	srcs: [
 		"libGralloc4Wrapper/wrapper.cpp",
 		"allocator/mali_gralloc_ion.cpp",
@@ -52,6 +55,10 @@ cc_library_shared {
 	cflags: [
 		"-DGRALLOC_LIBRARY_BUILD=1",
 		"-Wthread-safety",
+		/* Minimum buffer dimensions in pixels when buffer will use AFBC */
+		/* TODO: set this via BoardConfig */
+		"-DGRALLOC_DISP_W=0",
+		"-DGRALLOC_DISP_H=0",
 	],
 	static_libs: [
 		"libgralloc_capabilities",
