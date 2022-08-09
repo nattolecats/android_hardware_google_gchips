@@ -49,7 +49,7 @@
 /* IP-specific align values */
 #define GPU_BYTE_ALIGN_DEFAULT 64
 #ifdef SOC_ZUMA
-#define CAMERA_RAW10_BYTE_ALIGN 32
+#define CAMERA_RAW_BUFFER_BYTE_ALIGN 32
 #endif
 
 /* Always CPU align for Exynos */
@@ -617,11 +617,13 @@ static void calc_allocation_size(const int width,
 			}
 
 #ifdef SOC_ZUMA
-			if (has_camera_usage && format.id == MALI_GRALLOC_FORMAT_INTERNAL_RAW10) {
+			if (has_camera_usage && (format.id == MALI_GRALLOC_FORMAT_INTERNAL_RAW10 ||
+						format.id == MALI_GRALLOC_FORMAT_INTERNAL_RAW12 ||
+						format.id == MALI_GRALLOC_FORMAT_INTERNAL_RAW16)) {
 				/*
-				 * Camera ISP requires RAW10 buffers to have 32-byte aligned stride
+				 * Camera ISP requires RAW buffers to have 32-byte aligned stride
 				 */
-				hw_align = std::max(hw_align, static_cast<uint16_t>(CAMERA_RAW10_BYTE_ALIGN));
+				hw_align = std::max(hw_align, static_cast<uint16_t>(CAMERA_RAW_BUFFER_BYTE_ALIGN));
 			}
 #endif
 
