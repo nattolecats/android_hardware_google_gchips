@@ -476,7 +476,7 @@ static void update_yv12_stride(int8_t plane,
  * (matched against `VALID_USAGE`). These should be aligned.
  */
 static bool log_deprecated_usage_flags(uint64_t usage) {
-	if (usage & MALI_GRALLOC_USAGE_FRONTBUFFER) {
+	if (usage & DEPRECATED_MALI_GRALLOC_USAGE_FRONTBUFFER) {
 		MALI_GRALLOC_LOGW("Using deprecated FRONTBUFFER usage bit, please upgrade to BufferUsage::FRONT_BUFFER");
 		return true;
 	}
@@ -980,16 +980,6 @@ static int prepare_descriptor_exynos_formats(
 	return 0;
 }
 
-static bool validate_usage(const uint64_t usage) {
-	if (usage & GRALLOC_USAGE_FRONT_BUFFER) {
-		/* TODO(b/218383959): Enable front buffer rendering */
-		MALI_GRALLOC_LOGW("Front buffer rendering is disabled.");
-		return false;
-	}
-
-	return true;
-}
-
 int mali_gralloc_derive_format_and_size(buffer_descriptor_t * const bufDescriptor)
 {
 	alloc_type_t alloc_type{};
@@ -997,11 +987,6 @@ int mali_gralloc_derive_format_and_size(buffer_descriptor_t * const bufDescripto
 	int alloc_width = bufDescriptor->width;
 	int alloc_height = bufDescriptor->height;
 	uint64_t usage = bufDescriptor->producer_usage | bufDescriptor->consumer_usage;
-
-	if (!validate_usage(usage)) {
-		MALI_GRALLOC_LOGE("Usage flag validation failed.");
-		return -EINVAL;
-	}
 
 	/*
 	* Select optimal internal pixel format based upon
