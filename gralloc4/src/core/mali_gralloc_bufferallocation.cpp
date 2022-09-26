@@ -491,15 +491,15 @@ static bool log_deprecated_usage_flags(uint64_t usage) {
 }
 
 /*
- * Modify usage flag when BO is the producer (decoder) or the consumer (encoder)
+ * Modify usage flag when BO/BW is the producer (decoder) or the consumer (encoder)
  *
- * BO cannot use the flags CPU_READ_RARELY as Codec layer redefines those flags
- * for some internal usage. So, when BO is sending CPU_READ_OFTEN, it still
+ * BO/BW cannot use the flags CPU_READ_RARELY as Codec layer redefines those flags
+ * for some internal usage. So, when BO/BW is sending CPU_READ_OFTEN, it still
  * expects to allocate an uncached buffer and this procedure convers the OFTEN
  * flag to RARELY.
  */
-static uint64_t update_usage_for_BO(uint64_t usage) {
-	MALI_GRALLOC_LOGV("Hacking CPU RW flags for BO");
+static uint64_t update_usage_for_BIG(uint64_t usage) {
+	MALI_GRALLOC_LOGV("Hacking CPU RW flags for BO/BW");
 	if (usage & hidl_common::BufferUsage::CPU_READ_OFTEN) {
 		usage &= ~(static_cast<uint64_t>(hidl_common::BufferUsage::CPU_READ_OFTEN));
 		usage |= hidl_common::BufferUsage::CPU_READ_RARELY;
@@ -1152,9 +1152,9 @@ int mali_gralloc_buffer_allocate(const gralloc_buffer_descriptor_t *descriptors,
 		assert(bufDescriptor->producer_usage == bufDescriptor->consumer_usage);
 		uint64_t usage = bufDescriptor->producer_usage;
 		if (((usage & hidl_common::BufferUsage::VIDEO_DECODER)||(usage & hidl_common::BufferUsage::VIDEO_ENCODER)) &&
-		    (usage & GRALLOC_USAGE_GOOGLE_IP_BO))
+		    (usage & GRALLOC_USAGE_GOOGLE_IP_BIG))
 		{
-			usage = update_usage_for_BO(usage);
+			usage = update_usage_for_BIG(usage);
 			bufDescriptor->producer_usage = usage;
 			bufDescriptor->consumer_usage = usage;
 		}
