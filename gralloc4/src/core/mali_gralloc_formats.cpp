@@ -44,19 +44,20 @@
 #define MALI_GRALLOC_PRODUCER_DPU		((uint16_t)1 << 2)
 #define MALI_GRALLOC_PRODUCER_VPU		((uint16_t)1 << 4)
 #define MALI_GRALLOC_PRODUCER_CAM		((uint16_t)1 << 5)
-#define GOOGLE_GRALLOC_PRODUCER_BO		((uint16_t)1 << 6)
+#define GOOGLE_GRALLOC_PRODUCER_BIG		((uint16_t)1 << 6)
 #define GOOGLE_GRALLOC_PRODUCER_MFC		((uint16_t)1 << 7)
-#define GOOGLE_GRALLOC_PRODUCER_VPUS_MASK	(MALI_GRALLOC_PRODUCER_VPU | GOOGLE_GRALLOC_PRODUCER_BO | GOOGLE_GRALLOC_PRODUCER_MFC)
+#define GOOGLE_GRALLOC_PRODUCER_VPUS_MASK	(MALI_GRALLOC_PRODUCER_VPU | GOOGLE_GRALLOC_PRODUCER_BIG | GOOGLE_GRALLOC_PRODUCER_MFC)
 #define GOOGLE_GRALLOC_PRODUCER_TPU		((uint16_t)1 << 8)
 
 #define MALI_GRALLOC_CONSUMER_CPU		((uint16_t)1 << 0)
 #define MALI_GRALLOC_CONSUMER_GPU		((uint16_t)1 << 1)
 #define MALI_GRALLOC_CONSUMER_DPU		((uint16_t)1 << 2)
 #define MALI_GRALLOC_CONSUMER_VPU		((uint16_t)1 << 3)
-#define GOOGLE_GRALLOC_CONSUMER_BO		((uint16_t)1 << 4)
+#define GOOGLE_GRALLOC_CONSUMER_BIG		((uint16_t)1 << 4)
 #define GOOGLE_GRALLOC_CONSUMER_MFC		((uint16_t)1 << 5)
-#define GOOGLE_GRALLOC_CONSUMER_VPUS_MASK	(MALI_GRALLOC_CONSUMER_VPU | GOOGLE_GRALLOC_CONSUMER_BO | GOOGLE_GRALLOC_CONSUMER_MFC)
+#define GOOGLE_GRALLOC_CONSUMER_VPUS_MASK	(MALI_GRALLOC_CONSUMER_VPU | GOOGLE_GRALLOC_CONSUMER_BIG | GOOGLE_GRALLOC_CONSUMER_MFC)
 #define GOOGLE_GRALLOC_CONSUMER_TPU		((uint16_t)1 << 6)
+
 
 typedef struct
 {
@@ -79,14 +80,14 @@ static uint16_t get_vpu_consumer(uint64_t usage)
 	if (!(usage & hidl_common::BufferUsage::VIDEO_ENCODER))
 		return 0;
 
-	/* When both the BO and MFC flags are present, the assumption is BO is the
+	/* When both the BIG and MFC flags are present, the assumption is BIG is the
 	   producer and MFC is the consumer. There is no use case as of now in which
-	   MFC is the producer and BO is the consumer. */
+	   MFC is the producer and BIG is the consumer. */
 	if (usage & GRALLOC_USAGE_GOOGLE_IP_MFC)
 		return GOOGLE_GRALLOC_CONSUMER_MFC;
 
-	if (usage & GRALLOC_USAGE_GOOGLE_IP_BO)
-		return GOOGLE_GRALLOC_CONSUMER_BO;
+	if (usage & GRALLOC_USAGE_GOOGLE_IP_BIG)
+		return GOOGLE_GRALLOC_CONSUMER_BIG;
 
 	// TODO(b/185896428): Support 64-bits usage version for GraphicBufferSource
 	return GOOGLE_GRALLOC_CONSUMER_MFC;
@@ -172,11 +173,11 @@ static uint16_t get_vpu_producer(uint64_t usage)
 	if (!(usage & hidl_common::BufferUsage::VIDEO_DECODER))
 		return 0;
 
-	/* When both the BO and MFC flags are present, the assumption is BO is the
+	/* When both the BIG and MFC flags are present, the assumption is BIG is the
 	   producer and MFC is the consumer. There is no use case as of now in which
-	   MFC is the producer and BO is the consumer. */
-	if (usage & GRALLOC_USAGE_GOOGLE_IP_BO)
-		return GOOGLE_GRALLOC_PRODUCER_BO;
+	   MFC is the producer and BIG is the consumer. */
+	if (usage & GRALLOC_USAGE_GOOGLE_IP_BIG)
+		return GOOGLE_GRALLOC_PRODUCER_BIG;
 
 	if (usage & GRALLOC_USAGE_GOOGLE_IP_MFC)
 		return GOOGLE_GRALLOC_PRODUCER_MFC;
@@ -292,10 +293,15 @@ static uint64_t get_consumer_caps(const uint16_t consumers)
 		consumer_caps &= vpu_runtime_caps.caps_mask;
 	}
 
-	if (consumers & GOOGLE_GRALLOC_CONSUMER_BO &&
-	    bo_runtime_caps.caps_mask & MALI_GRALLOC_FORMAT_CAPABILITY_OPTIONS_PRESENT)
+	if (consumers & GOOGLE_GRALLOC_CONSUMER_BIG)
 	{
-		consumer_caps &= bo_runtime_caps.caps_mask;
+#ifdef SOC_ZUMA
+		if (bw_runtime_caps.caps_mask & MALI_GRALLOC_FORMAT_CAPABILITY_OPTIONS_PRESENT)
+			consumer_caps &= bw_runtime_caps.caps_mask;
+#else
+		if (bo_runtime_caps.caps_mask & MALI_GRALLOC_FORMAT_CAPABILITY_OPTIONS_PRESENT)
+			consumer_caps &= bo_runtime_caps.caps_mask;
+#endif
 	}
 
 	if (consumers & GOOGLE_GRALLOC_CONSUMER_MFC &&
@@ -366,10 +372,15 @@ static uint64_t get_producer_caps(const uint16_t producers)
 		producer_caps &= vpu_runtime_caps.caps_mask;
 	}
 
-	if (producers & GOOGLE_GRALLOC_PRODUCER_BO &&
-	    bo_runtime_caps.caps_mask & MALI_GRALLOC_FORMAT_CAPABILITY_OPTIONS_PRESENT)
+	if (producers & GOOGLE_GRALLOC_PRODUCER_BIG)
 	{
-		producer_caps &= bo_runtime_caps.caps_mask;
+#ifdef SOC_ZUMA
+		if (bw_runtime_caps.caps_mask & MALI_GRALLOC_FORMAT_CAPABILITY_OPTIONS_PRESENT)
+			producer_caps &= bw_runtime_caps.caps_mask;
+#else
+		if (bo_runtime_caps.caps_mask & MALI_GRALLOC_FORMAT_CAPABILITY_OPTIONS_PRESENT)
+			producer_caps &= bo_runtime_caps.caps_mask;
+#endif
 	}
 
 	if (producers & GOOGLE_GRALLOC_PRODUCER_MFC &&
@@ -1408,7 +1419,7 @@ uint32_t get_base_format(const uint64_t req_format,
 				base_format = HAL_PIXEL_FORMAT_EXYNOS_YCrCb_420_SP_M;
 			}
 		}
-		else if (get_consumers(usage) & GOOGLE_GRALLOC_CONSUMER_BO)
+		else if (get_consumers(usage) & GOOGLE_GRALLOC_CONSUMER_BIG)
 		{
 			base_format = HAL_PIXEL_FORMAT_GOOGLE_NV12_SP;
 		}
@@ -1432,7 +1443,7 @@ uint32_t get_base_format(const uint64_t req_format,
 	}
 	else if (req_format == HAL_PIXEL_FORMAT_YCbCr_420_888)
 	{
-		if (get_consumers(usage) & GOOGLE_GRALLOC_CONSUMER_BO)
+		if (get_consumers(usage) & GOOGLE_GRALLOC_CONSUMER_BIG)
 		{
 			base_format = HAL_PIXEL_FORMAT_GOOGLE_NV12_SP;
 		}
@@ -1457,7 +1468,7 @@ uint32_t get_base_format(const uint64_t req_format,
 	}
 	else if (req_format == HAL_PIXEL_FORMAT_YCBCR_P010)
 	{
-		if (get_consumers(usage) & GOOGLE_GRALLOC_CONSUMER_BO)
+		if (get_consumers(usage) & GOOGLE_GRALLOC_CONSUMER_BIG)
 		{
 			base_format = HAL_PIXEL_FORMAT_GOOGLE_NV12_SP_10B;
 		}

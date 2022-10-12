@@ -36,6 +36,7 @@ mali_gralloc_format_caps vpu_runtime_caps;
 mali_gralloc_format_caps gpu_runtime_caps;
 mali_gralloc_format_caps cam_runtime_caps;
 mali_gralloc_format_caps bo_runtime_caps;
+mali_gralloc_format_caps bw_runtime_caps;
 mali_gralloc_format_caps mfc_runtime_caps;
 
 void get_ip_capabilities(void)
@@ -96,6 +97,13 @@ void get_ip_capabilities(void)
 	bo_runtime_caps.caps_mask |= MALI_GRALLOC_FORMAT_CAPABILITY_OPTIONS_PRESENT;
 	bo_runtime_caps.caps_mask |= MALI_GRALLOC_FORMAT_CAPABILITY_AFBC_BASIC;
 	bo_runtime_caps.caps_mask |= MALI_GRALLOC_FORMAT_CAPABILITY_AFBC_YUV_WRITE;
+
+	/* Determine BIGWAVE IP capabilities */
+	bw_runtime_caps.caps_mask |= MALI_GRALLOC_FORMAT_CAPABILITY_OPTIONS_PRESENT;
+	bw_runtime_caps.caps_mask |= MALI_GRALLOC_FORMAT_CAPABILITY_AFBC_BASIC;
+	bw_runtime_caps.caps_mask |= MALI_GRALLOC_FORMAT_CAPABILITY_AFBC_YUV_READ;
+	bw_runtime_caps.caps_mask |= MALI_GRALLOC_FORMAT_CAPABILITY_AFBC_YUV_WRITE;
+	bw_runtime_caps.caps_mask |= MALI_GRALLOC_FORMAT_CAPABILITY_AFBC_WIDEBLK;
 
 	/* Determine MFC IP capabilities */
 	mfc_runtime_caps.caps_mask |= MALI_GRALLOC_FORMAT_CAPABILITY_OPTIONS_PRESENT;
