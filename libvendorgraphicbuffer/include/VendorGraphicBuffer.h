@@ -138,6 +138,9 @@ public:
 	static int is_sbwc(buffer_handle_t);
 	static void* get_video_metadata(buffer_handle_t);
 
+	static uint32_t get_format_fourcc(buffer_handle_t);
+	static uint64_t get_format_modifier(buffer_handle_t);
+
 	/* get_video_metadata_roiinfo is only supported with gralloc4
 	 * When gralloc3 is used, will always return nullptr
 	 */
