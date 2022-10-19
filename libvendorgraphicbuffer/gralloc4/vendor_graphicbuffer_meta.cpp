@@ -34,6 +34,8 @@ using arm::mapper::common::shared_metadata;
 using aidl::android::hardware::graphics::common::Dataspace;
 using android::gralloc4::encodeDataspace;
 using android::gralloc4::decodeDataspace;
+using android::gralloc4::decodePixelFormatFourCC;
+using android::gralloc4::decodePixelFormatModifier;
 using android::hardware::graphics::mapper::V4_0::IMapper;
 using android::hardware::graphics::mapper::V4_0::Error;
 
@@ -253,6 +255,58 @@ void* VendorGraphicBufferMeta::get_video_metadata_roiinfo(buffer_handle_t hnd)
 			sizeof(shared_metadata) + gralloc_hnd->reserved_region_size;
 
 	return nullptr;
+}
+
+uint32_t VendorGraphicBufferMeta::get_format_fourcc(buffer_handle_t hnd) {
+	native_handle_t* handle = const_cast<native_handle_t*>(hnd);
+	if (!handle) {
+		return DRM_FORMAT_INVALID;
+	}
+
+	Error error = Error::NONE;
+	uint32_t fourcc;
+	get_mapper()->get(handle, android::gralloc4::MetadataType_PixelFormatFourCC,
+	                  [&](const auto& tmpError, const android::hardware::hidl_vec<uint8_t>& tmpVec) {
+	                  	error = tmpError;
+	                  	if (error != Error::NONE) {
+	                  		return;
+	                  	}
+	                  	error = static_cast<Error>(decodePixelFormatFourCC(tmpVec, &fourcc));
+	                  });
+
+
+	if (error != Error::NONE) {
+		ALOGE("Failed to get fourcc");
+		return DRM_FORMAT_INVALID;
+	}
+
+	return fourcc;
+}
+
+uint64_t VendorGraphicBufferMeta::get_format_modifier(buffer_handle_t hnd) {
+	native_handle_t* handle = const_cast<native_handle_t*>(hnd);
+	if (!handle) {
+		return DRM_FORMAT_MOD_INVALID;
+	}
+
+	Error error = Error::NONE;
+	uint64_t modifier;
+	get_mapper()->get(handle, android::gralloc4::MetadataType_PixelFormatModifier,
+	                  [&](const auto& tmpError, const android::hardware::hidl_vec<uint8_t>& tmpVec) {
+	                  	error = tmpError;
+	                  	if (error != Error::NONE) {
+	                  		return;
+	                  	}
+	                  	error = static_cast<Error>(decodePixelFormatModifier(tmpVec, &modifier));
+	                  });
+
+
+	if (error != Error::NONE) {
+		ALOGE("Failed to get format modifier");
+		return DRM_FORMAT_MOD_INVALID;
+	}
+
+	return modifier;
 }
 
 void VendorGraphicBufferMeta::init(const buffer_handle_t handle)
