@@ -75,7 +75,7 @@ arm_gralloc_core_cc_defaults {
 		"libcutils",
 		"libutils",
 		"android.hardware.graphics.common@1.2",
-		"android.hardware.graphics.common-V3-ndk",
+		"android.hardware.graphics.common-V4-ndk",
 	],
 	target: {
 		android: {
