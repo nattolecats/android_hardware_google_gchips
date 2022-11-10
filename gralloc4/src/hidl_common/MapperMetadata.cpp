@@ -310,17 +310,6 @@ static android::status_t get_plane_layouts(const private_handle_t *handle, std::
 				offset = (int64_t)handle->bases[plane_index] - handle->bases[0];
 			}
 
-			/* sample increments in bits must be 8 for y plane for lock */
-			if (plane_index == 0)
-			{
-				sample_increment_in_bits = 8;
-			}
-			/* sample increments in bits must be 8 or 16 for cb/cr plane for lock */
-			else if (sample_increment_in_bits > 16)
-			{
-				sample_increment_in_bits = 16;
-			}
-
 			PlaneLayout layout = {.offsetInBytes = offset,
 				                  .sampleIncrementInBits = sample_increment_in_bits,
 				                  .strideInBytes = handle->plane_info[plane_index].byte_stride,
