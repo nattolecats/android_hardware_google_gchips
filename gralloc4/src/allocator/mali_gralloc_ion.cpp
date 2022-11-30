@@ -52,6 +52,7 @@
 #include "mali_gralloc_ion.h"
 
 #include <array>
+#include <string>
 
 #define INIT_ZERO(obj) (memset(&(obj), 0, sizeof((obj))))
 
@@ -125,11 +126,13 @@ struct ion_device
 	 * @param heap_type [in]    Requested heap type.
 	 * @param flags     [in]    ION allocation attributes defined by ION_FLAG_*.
 	 * @param min_pgsz  [out]   Minimum page size (in bytes).
+	 * @buffer_name     [in]    Optional name specifying what the buffer is for.
 	 *
 	 * @return File handle which can be used for allocation, on success
 	 *         -1, otherwise.
 	 */
-	int alloc_from_ion_heap(uint64_t usage, size_t size, unsigned int flags, int *min_pgsz);
+	int alloc_from_ion_heap(uint64_t usage, size_t size, unsigned int flags, int *min_pgsz,
+				const std::string& buffer_name = std::string());
 
 	/*
 	 *  Signals the start or end of a region where the CPU is accessing a
@@ -180,11 +183,13 @@ private:
 	 *                          be used for ION allocations. Will not be used with
 	 *                          DMA-BUF heaps since the framework does not support
 	 *                          allocation flags.
+	 * @buffer_name     [in]    Name specifying what the buffer is for.
 	 *
 	 * @return fd of the allocated buffer on success, -1 otherwise;
 	 */
 
-	int alloc_from_dmabuf_heap(const std::string& heap_name, size_t size, unsigned int flags);
+	int alloc_from_dmabuf_heap(const std::string& heap_name, size_t size, unsigned int flags,
+				   const std::string& buffer_name);
 };
 
 static void set_ion_flags(uint64_t usage, unsigned int *ion_flags)
@@ -344,7 +349,7 @@ static std::string select_dmabuf_heap(unsigned int heap_mask)
 }
 
 int ion_device::alloc_from_dmabuf_heap(const std::string& heap_name, size_t size,
-				       unsigned int flags)
+				       unsigned int flags, const std::string& buffer_name)
 {
 	ATRACE_NAME(("alloc_from_dmabuf_heap " +  heap_name).c_str());
 	if (!buffer_allocator)
@@ -358,10 +363,17 @@ int ion_device::alloc_from_dmabuf_heap(const std::string& heap_name, size_t size
 		ALOGE("Allocation failed for heap %s error: %d\n", heap_name.c_str(), shared_fd);
 	}
 
+	if (!buffer_name.empty() && buffer_name != "Unnamed") {
+		if (buffer_allocator->DmabufSetName(shared_fd, buffer_name)) {
+			ALOGW("Unable to set buffer name %s: %s", buffer_name.c_str(), strerror(errno));
+		}
+	}
+
 	return shared_fd;
 }
 
-int ion_device::alloc_from_ion_heap(uint64_t usage, size_t size, unsigned int flags, int *min_pgsz)
+int ion_device::alloc_from_ion_heap(uint64_t usage, size_t size, unsigned int flags, int *min_pgsz,
+				    const std::string& buffer_name)
 {
 	ATRACE_CALL();
 	/* TODO: remove min_pgsz? I don't think this is useful on Exynos */
@@ -376,7 +388,7 @@ int ion_device::alloc_from_ion_heap(uint64_t usage, size_t size, unsigned int fl
 	auto dmabuf_heap_name = select_dmabuf_heap(heap_mask);
 	if (!dmabuf_heap_name.empty())
 	{
-		shared_fd = alloc_from_dmabuf_heap(dmabuf_heap_name, size, flags);
+		shared_fd = alloc_from_dmabuf_heap(dmabuf_heap_name, size, flags, buffer_name);
 	}
 	else
 	{
@@ -617,7 +629,8 @@ int mali_gralloc_ion_allocate(const gralloc_buffer_descriptor_t *descriptors,
 			if (ion_fd >= 0 && fidx == 0) {
 				fds[fidx] = ion_fd;
 			} else {
-				fds[fidx] = dev->alloc_from_ion_heap(usage, bufDescriptor->alloc_sizes[fidx], ion_flags, &min_pgsz);
+				fds[fidx] = dev->alloc_from_ion_heap(usage, bufDescriptor->alloc_sizes[fidx], ion_flags,
+								     &min_pgsz, bufDescriptor->name);
 			}
 			if (fds[fidx] < 0)
 			{
