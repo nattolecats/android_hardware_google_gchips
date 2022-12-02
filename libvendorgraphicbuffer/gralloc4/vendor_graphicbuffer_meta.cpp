@@ -47,8 +47,7 @@ using android::hardware::graphics::mapper::V4_0::Error;
 // libraries and should depend upon HAL (and it's extension) to call into
 // Gralloc.
 int mali_gralloc_reference_validate(buffer_handle_t handle) {
-	auto hnd = static_cast<const private_handle_t *>(handle);
-  return private_handle_t::validate(hnd);
+	return private_handle_t::validate(handle);
 }
 
 const private_handle_t * convertNativeHandleToPrivateHandle(buffer_handle_t handle) {
@@ -72,7 +71,7 @@ android::sp<IMapper> get_mapper() {
 
 int VendorGraphicBufferMeta::get_video_metadata_fd(buffer_handle_t hnd)
 {
-	const private_handle_t *gralloc_hnd = static_cast<const private_handle_t *>(hnd);
+	const auto *gralloc_hnd = convertNativeHandleToPrivateHandle(hnd);
 
 	if (!gralloc_hnd)
 		return -EINVAL;
@@ -138,7 +137,7 @@ int VendorGraphicBufferMeta::set_dataspace(buffer_handle_t hnd, android_dataspac
 
 int VendorGraphicBufferMeta::is_afbc(buffer_handle_t hnd)
 {
-	const private_handle_t *gralloc_hnd = static_cast<const private_handle_t *>(hnd);
+	const auto *gralloc_hnd = convertNativeHandleToPrivateHandle(hnd);
 
 	if (!gralloc_hnd)
 		return 0;
@@ -149,11 +148,9 @@ int VendorGraphicBufferMeta::is_afbc(buffer_handle_t hnd)
 	return 0;
 }
 
-int VendorGraphicBufferMeta::is_sbwc(buffer_handle_t buffer_hnd_p)
+int VendorGraphicBufferMeta::is_sbwc(buffer_handle_t hnd)
 {
-	const private_handle_t *hnd = static_cast<const private_handle_t *>(buffer_hnd_p);
-
-	return is_sbwc_format(static_cast<uint32_t>(hnd->alloc_format & MALI_GRALLOC_INTFMT_FMT_MASK));
+	return is_sbwc_format(VendorGraphicBufferMeta::get_internal_format(hnd));
 }
 
 #define GRALLOC_META_GETTER(__type__, __name__, __member__) \
@@ -167,7 +164,8 @@ __type__ VendorGraphicBufferMeta::get_##__name__(buffer_handle_t hnd) \
 
 uint32_t VendorGraphicBufferMeta::get_format(buffer_handle_t hnd)
 {
-	const private_handle_t *gralloc_hnd = static_cast<const private_handle_t *>(hnd);
+	const auto *gralloc_hnd = convertNativeHandleToPrivateHandle(hnd);
+
 	if (!gralloc_hnd)
 		return 0;
 
@@ -176,7 +174,8 @@ uint32_t VendorGraphicBufferMeta::get_format(buffer_handle_t hnd)
 
 uint64_t VendorGraphicBufferMeta::get_internal_format(buffer_handle_t hnd)
 {
-	const private_handle_t *gralloc_hnd = static_cast<const private_handle_t *>(hnd);
+	const auto *gralloc_hnd = convertNativeHandleToPrivateHandle(hnd);;
+
 	if (!gralloc_hnd)
 		return 0;
 
@@ -198,7 +197,7 @@ GRALLOC_META_GETTER(uint64_t, flags, flags);
 
 int VendorGraphicBufferMeta::get_fd(buffer_handle_t hnd, int num)
 {
-	const private_handle_t *gralloc_hnd = static_cast<const private_handle_t *>(hnd);
+	const auto *gralloc_hnd = convertNativeHandleToPrivateHandle(hnd);
 
 	if (!gralloc_hnd)
 		return -1;
@@ -211,7 +210,7 @@ int VendorGraphicBufferMeta::get_fd(buffer_handle_t hnd, int num)
 
 int VendorGraphicBufferMeta::get_size(buffer_handle_t hnd, int num)
 {
-	const private_handle_t *gralloc_hnd = static_cast<const private_handle_t *>(hnd);
+	const auto *gralloc_hnd = convertNativeHandleToPrivateHandle(hnd);
 
 	if (!gralloc_hnd)
 		return 0;
@@ -225,7 +224,7 @@ int VendorGraphicBufferMeta::get_size(buffer_handle_t hnd, int num)
 
 uint64_t VendorGraphicBufferMeta::get_usage(buffer_handle_t hnd)
 {
-	const private_handle_t *gralloc_hnd = static_cast<const private_handle_t *>(hnd);
+	const auto *gralloc_hnd = convertNativeHandleToPrivateHandle(hnd);
 
 	if (!gralloc_hnd)
 		return 0;
@@ -311,7 +310,7 @@ uint64_t VendorGraphicBufferMeta::get_format_modifier(buffer_handle_t hnd) {
 
 void VendorGraphicBufferMeta::init(const buffer_handle_t handle)
 {
-	const private_handle_t *gralloc_hnd = static_cast<const private_handle_t *>(handle);
+	const auto *gralloc_hnd = convertNativeHandleToPrivateHandle(handle);
 
 	if (!gralloc_hnd)
 		return;
