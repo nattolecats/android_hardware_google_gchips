@@ -363,7 +363,7 @@ int ion_device::alloc_from_dmabuf_heap(const std::string& heap_name, size_t size
 		ALOGE("Allocation failed for heap %s error: %d\n", heap_name.c_str(), shared_fd);
 	}
 
-	if (!buffer_name.empty() && buffer_name != "Unnamed") {
+	if (!buffer_name.empty()) {
 		if (buffer_allocator->DmabufSetName(shared_fd, buffer_name)) {
 			ALOGW("Unable to set buffer name %s: %s", buffer_name.c_str(), strerror(errno));
 		}
