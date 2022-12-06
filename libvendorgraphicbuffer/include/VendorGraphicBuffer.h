@@ -128,6 +128,7 @@ public:
 	static int get_width(buffer_handle_t);
 	static int get_height(buffer_handle_t);
 	static uint32_t get_stride(buffer_handle_t);
+	static uint32_t get_stride_in_bytes(buffer_handle_t);
 	static uint32_t get_vstride(buffer_handle_t);
 	static uint64_t get_producer_usage(buffer_handle_t);
 	static uint64_t get_consumer_usage(buffer_handle_t);
