@@ -187,6 +187,7 @@ GRALLOC_META_GETTER(uint64_t, frameworkFormat, req_format);
 GRALLOC_META_GETTER(int, width, width);
 GRALLOC_META_GETTER(int, height, height);
 GRALLOC_META_GETTER(uint32_t, stride, stride);
+GRALLOC_META_GETTER(uint32_t, stride_in_bytes, plane_info[0].byte_stride);
 GRALLOC_META_GETTER(uint32_t, vstride, plane_info[0].alloc_height);
 
 GRALLOC_META_GETTER(uint64_t, producer_usage, producer_usage);
