@@ -52,9 +52,6 @@
 #define CAMERA_RAW_BUFFER_BYTE_ALIGN 32
 #endif
 
-/* Always CPU align for Exynos */
-#define CAN_SKIP_CPU_ALIGN 0
-
 /* Realign YV12 format so that chroma stride is half of luma stride */
 #define REALIGN_YV12 1
 
@@ -553,6 +550,9 @@ static void calc_allocation_size(const int width,
 {
 	/* pixel_stride is set outside this function after this function is called */
 	GRALLOC_UNUSED(pixel_stride);
+#ifndef SOC_ZUMA
+	GRALLOC_UNUSED(has_camera_usage);
+#endif
 
 	plane_info[0].offset = 0;
 
@@ -628,18 +628,11 @@ static void calc_allocation_size(const int width,
 #endif
 
 			uint32_t cpu_align = 0;
-
-			if (!(has_camera_usage && !has_cpu_usage && format.id == MALI_GRALLOC_FORMAT_INTERNAL_RAW10)) {
-#if CAN_SKIP_CPU_ALIGN == 1
-				if (has_cpu_usage)
-#endif
-				{
-					assert((format.bpp[plane] * format.align_w_cpu) % 8 == 0);
-					const bool is_primary_plane = (plane == 0 || !format.planes_contiguous);
-					if (is_primary_plane)
-					{
-						cpu_align = (format.bpp[plane] * format.align_w_cpu) / 8;
-					}
+			if (has_cpu_usage && format.id != MALI_GRALLOC_FORMAT_INTERNAL_RAW10) {
+				assert((format.bpp[plane] * format.align_w_cpu) % 8 == 0);
+				const bool is_primary_plane = (plane == 0 || !format.planes_contiguous);
+				if (is_primary_plane) {
+					cpu_align = (format.bpp[plane] * format.align_w_cpu) / 8;
 				}
 			}
 
