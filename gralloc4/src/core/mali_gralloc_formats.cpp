@@ -1451,6 +1451,10 @@ uint32_t get_base_format(const uint64_t req_format,
 		{
 			base_format = HAL_PIXEL_FORMAT_GOOGLE_NV12_SP_10B;
 		}
+		else if (usage & (GRALLOC_USAGE_HW_VIDEO_ENCODER | GRALLOC_USAGE_HW_VIDEO_DECODER))
+		{
+			base_format = HAL_PIXEL_FORMAT_EXYNOS_YCbCr_P010_SPN;
+		}
 	}
 
 	/* Obtain a valid base format, optionally mapped to internal. Flex formats
