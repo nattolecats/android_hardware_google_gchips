@@ -55,10 +55,6 @@ cc_library_shared {
 	cflags: [
 		"-DGRALLOC_LIBRARY_BUILD=1",
 		"-Wthread-safety",
-		/* Minimum buffer dimensions in pixels when buffer will use AFBC */
-		/* TODO: set this via BoardConfig */
-		"-DGRALLOC_DISP_W=0",
-		"-DGRALLOC_DISP_H=0",
 	],
 	static_libs: [
 		"libgralloc_capabilities",

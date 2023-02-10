@@ -892,7 +892,6 @@ static uint64_t get_afbc_format(const uint32_t base_format,
  * @param consumers              [in]    Consumers (flags).
  * @param producer_active_caps   [out]   Active producer capabilities (flags).
  * @param consumer_active_caps   [out]   Active consumer capabilities (flags).
- * @param buffer_size            [in]    Buffer resolution (w x h, in pixels).
  *
  * @return none.
  */
@@ -900,8 +899,7 @@ static void get_active_caps(const format_info_t format,
                             const uint16_t producers,
                             const uint16_t consumers,
                             uint64_t * const producer_active_caps,
-                            uint64_t * const consumer_active_caps,
-                            const int buffer_size)
+                            uint64_t * const consumer_active_caps)
 {
 	const uint64_t producer_caps = (producer_active_caps) ? *producer_active_caps : 0;
 	const uint64_t consumer_caps = (consumer_active_caps) ? *consumer_active_caps : 0;
@@ -954,24 +952,6 @@ static void get_active_caps(const format_info_t format,
 				consumer_mask &= ~MALI_GRALLOC_FORMAT_CAPABILITY_AFBC_SPLITBLK;
 			}
 		}
-	}
-
-	bool afbc_allowed = false;
-	afbc_allowed = buffer_size > (192 * 192);
-
-	if (consumers & MALI_GRALLOC_CONSUMER_DPU)
-	{
-		/* TODO: make this into an option in BoardConfig */
-#if GRALLOC_DISP_W != 0 && GRALLOC_DISP_H != 0
-#define GRALLOC_AFBC_MIN_SIZE 40
-		/* Disable AFBC based on buffer dimensions */
-		afbc_allowed = ((buffer_size * 100) / (GRALLOC_DISP_W * GRALLOC_DISP_H)) >= GRALLOC_AFBC_MIN_SIZE;
-#endif
-	}
-
-	if (!afbc_allowed)
-	{
-		consumer_mask &= ~MALI_GRALLOC_FORMAT_CAPABILITY_AFBCENABLE_MASK;
 	}
 
 	if (producer_active_caps)
@@ -1043,8 +1023,7 @@ bool get_supported_format(const uint32_t base_format,
 		consumer_nodpu_caps = get_consumer_caps(consumers_nodpu);
 		get_active_caps(formats[fmt_idx],
 		                producers, consumers_nodpu,
-		                NULL, &consumer_nodpu_caps,
-		                0 /* N/A without DPU consumer */);
+		                NULL, &consumer_nodpu_caps);
 
 		fmt_supported->f_flags = is_format_supported(fmt_idx,
 	                                                 ip_fmt_idx,
@@ -1472,6 +1451,10 @@ uint32_t get_base_format(const uint64_t req_format,
 		{
 			base_format = HAL_PIXEL_FORMAT_GOOGLE_NV12_SP_10B;
 		}
+		else if (usage & (GRALLOC_USAGE_HW_VIDEO_ENCODER | GRALLOC_USAGE_HW_VIDEO_DECODER))
+		{
+			base_format = HAL_PIXEL_FORMAT_EXYNOS_YCbCr_P010_SPN;
+		}
 	}
 
 	/* Obtain a valid base format, optionally mapped to internal. Flex formats
@@ -1489,7 +1472,6 @@ uint32_t get_base_format(const uint64_t req_format,
  * @param req_format       [in]   Format (base + optional modifiers) requested by client.
  * @param type             [in]   Format type (public usage or internal).
  * @param usage            [in]   Buffer usage.
- * @param buffer_size      [in]   Buffer resolution (w x h, in pixels).
  *
  * @return alloc_format, format to be used in allocation;
  *         MALI_GRALLOC_FORMAT_INTERNAL_UNDEFINED, where no suitable
@@ -1497,8 +1479,7 @@ uint32_t get_base_format(const uint64_t req_format,
  */
 uint64_t mali_gralloc_select_format(const uint64_t req_format,
                                     const mali_gralloc_format_type type,
-                                    const uint64_t usage,
-                                    const int buffer_size)
+                                    const uint64_t usage)
 {
 	uint64_t alloc_format = MALI_GRALLOC_FORMAT_INTERNAL_UNDEFINED;
 
@@ -1582,8 +1563,7 @@ uint64_t mali_gralloc_select_format(const uint64_t req_format,
 
 		get_active_caps(formats[req_fmt_idx],
 		                producers, consumers,
-		                &producer_active_caps, &consumer_active_caps,
-		                buffer_size);
+		                &producer_active_caps, &consumer_active_caps);
 
 		MALI_GRALLOC_LOGV("Producer caps (active): 0x%" PRIx64 ", Consumer caps (active): 0x%" PRIx64,
 		      producer_active_caps, consumer_active_caps);
