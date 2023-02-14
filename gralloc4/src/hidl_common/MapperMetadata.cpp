@@ -286,7 +286,8 @@ static std::vector<std::vector<PlaneLayoutComponent>> plane_layout_components_fr
 static android::status_t get_plane_layouts(const private_handle_t *handle, std::vector<PlaneLayout> *layouts)
 {
 	const int num_planes = get_num_planes(handle);
-	int32_t format_index = get_format_index(handle->alloc_format & MALI_GRALLOC_INTFMT_FMT_MASK);
+	uint32_t base_format = handle->alloc_format & MALI_GRALLOC_INTFMT_FMT_MASK;
+	int32_t format_index = get_format_index(base_format);
 	if (format_index < 0)
 	{
 		MALI_GRALLOC_LOGE("Negative format index in get_plane_layouts");
@@ -303,6 +304,13 @@ static android::status_t get_plane_layouts(const private_handle_t *handle, std::
 			int64_t plane_size = handle->plane_info[plane_index].size;
 			int64_t sample_increment_in_bits = format_info.bpp[plane_index];
 			int64_t offset = handle->plane_info[plane_index].offset;
+
+			uint8_t fd_count = get_exynos_fd_count(base_format);
+			if (fd_count != 1) {
+				MALI_GRALLOC_LOGW("Offsets in plane layouts of multi-fd format (%s %" PRIu64
+						") are not reliable. This can lead to image corruption.",
+						format_name(base_format), handle->alloc_format);
+			}
 
 			PlaneLayout layout = {.offsetInBytes = offset,
 				                  .sampleIncrementInBits = sample_increment_in_bits,
