@@ -1382,7 +1382,7 @@ uint32_t get_base_format(const uint64_t req_format,
 
 		if ((usage & GRALLOC_USAGE_HW_TEXTURE) || (usage & GRALLOC_USAGE_HW_COMPOSER))
 		{
-			base_format = HAL_PIXEL_FORMAT_EXYNOS_YCrCb_420_SP_M;    //NV21M narrow
+			base_format = HAL_PIXEL_FORMAT_EXYNOS_YCbCr_420_SPN;
 		}
 		else if ((producers & MALI_GRALLOC_PRODUCER_CAM) &&
 			 !(producers & MALI_GRALLOC_PRODUCER_GPU) &&
@@ -1393,9 +1393,9 @@ uint32_t get_base_format(const uint64_t req_format,
 			// 2. GPU is not one of the producers
 			// 3. MFC is the sole consumer
 			if (property_get_bool("debug.vendor.gpu.record_sbwc", true)) {
-				base_format = HAL_PIXEL_FORMAT_EXYNOS_YCbCr_420_SP_M_SBWC;
+				base_format = HAL_PIXEL_FORMAT_EXYNOS_YCbCr_420_SPN_SBWC;
 			} else {
-				base_format = HAL_PIXEL_FORMAT_EXYNOS_YCrCb_420_SP_M;
+				base_format = HAL_PIXEL_FORMAT_EXYNOS_YCbCr_420_SPN;
 			}
 		}
 		else if (get_consumers(usage) & GOOGLE_GRALLOC_CONSUMER_BIG)
@@ -1404,20 +1404,20 @@ uint32_t get_base_format(const uint64_t req_format,
 		}
 		else if (usage & GRALLOC_USAGE_HW_VIDEO_ENCODER)
 		{
-			base_format = HAL_PIXEL_FORMAT_EXYNOS_YCrCb_420_SP_M;    //NV21M narrow
+			base_format = HAL_PIXEL_FORMAT_EXYNOS_YCbCr_420_SPN;
 		}
 		else if (usage & GRALLOC_USAGE_VIDEO_PRIVATE_DATA)
 		{
-			base_format = HAL_PIXEL_FORMAT_EXYNOS_YCbCr_420_SP_M;
+			base_format = HAL_PIXEL_FORMAT_EXYNOS_YCbCr_420_SPN;
 		}
 		else if ((usage & GRALLOC_USAGE_HW_CAMERA_READ) && (usage & GRALLOC_USAGE_HW_CAMERA_WRITE))
 		{
-			// Camera IMPLEMENTATION_DEFINED format output maps to NV21M.
-			base_format = HAL_PIXEL_FORMAT_EXYNOS_YCrCb_420_SP_M;
+			// Camera IMPLEMENTATION_DEFINED format output maps to NV21.
+			base_format = HAL_PIXEL_FORMAT_YCrCb_420_SP;
 		}
 		else
 		{
-			base_format = HAL_PIXEL_FORMAT_EXYNOS_YCrCb_420_SP_M;    //NV21M narrow
+			base_format = HAL_PIXEL_FORMAT_EXYNOS_YCbCr_420_SPN;
 		}
 	}
 	else if (req_format == HAL_PIXEL_FORMAT_YCbCr_420_888)
@@ -1428,21 +1428,21 @@ uint32_t get_base_format(const uint64_t req_format,
 		}
 		else if (usage & (GRALLOC_USAGE_HW_VIDEO_ENCODER | GRALLOC_USAGE_HW_VIDEO_DECODER))
 		{
-			base_format = HAL_PIXEL_FORMAT_EXYNOS_YCbCr_420_SP_M;
+			base_format = HAL_PIXEL_FORMAT_EXYNOS_YCbCr_420_SPN;
 		}
 		else if ((usage & GRALLOC_USAGE_HW_TEXTURE) && (usage & GRALLOC_USAGE_HW_CAMERA_WRITE))
 		{
-			// Camera flexible YUV format output maps to NV21M.
-			base_format = HAL_PIXEL_FORMAT_EXYNOS_YCrCb_420_SP_M;
+			// Camera flexible YUV format output maps to NV21.
+			base_format = HAL_PIXEL_FORMAT_YCrCb_420_SP;
 		}
 		else if (usage & (GRALLOC_USAGE_HW_RENDER | GRALLOC_USAGE_HW_TEXTURE))
 		{
-			base_format = HAL_PIXEL_FORMAT_EXYNOS_YCbCr_420_SP_M;
+			base_format = HAL_PIXEL_FORMAT_EXYNOS_YCbCr_420_SPN;
 		}
 		else
 		{
-			// Flexible framework-accessible YUV format; map to NV21 for now
-			base_format = HAL_PIXEL_FORMAT_YCrCb_420_SP;
+			// Flexible framework-accessible YUV format;
+			base_format = HAL_PIXEL_FORMAT_EXYNOS_YCbCr_420_SPN;
 		}
 	}
 	else if (req_format == HAL_PIXEL_FORMAT_YCBCR_P010)
