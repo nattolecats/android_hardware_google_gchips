@@ -208,7 +208,7 @@ const format_ip_support_t formats_ip_support[] = {
 	/* BEGIN ALIGNED SECTION */
 	{ .id = HAL_PIXEL_FORMAT_GOOGLE_NV12_SP,     .cpu_wr = F_LIN, .cpu_rd = F_LIN, .gpu_wr = F_LIN,        .gpu_rd = F_LIN,        .dpu_wr = F_LIN,  .dpu_rd = F_LIN,  .dpu_aeu_wr = F_NONE, .vpu_wr = F_LIN,  .vpu_rd = F_LIN,  .cam_wr = F_LIN },
 	{ .id = HAL_PIXEL_FORMAT_GOOGLE_NV12_SP_10B, .cpu_wr = F_LIN, .cpu_rd = F_LIN, .gpu_wr = F_LIN,        .gpu_rd = F_LIN,        .dpu_wr = F_LIN,  .dpu_rd = F_LIN,  .dpu_aeu_wr = F_NONE, .vpu_wr = F_LIN,  .vpu_rd = F_LIN,  .cam_wr = F_LIN },
-	{ .id = HAL_PIXEL_FORMAT_GOOGLE_R_8,         .cpu_wr = F_LIN, .cpu_rd = F_LIN, .gpu_wr = F_LIN|F_AFBC, .gpu_rd = F_LIN|F_AFBC, .dpu_wr = F_NONE, .dpu_rd = F_NONE, .dpu_aeu_wr = F_NONE, .vpu_wr = F_NONE, .vpu_rd = F_NONE, .cam_wr = F_LIN },
+	{ .id = HAL_PIXEL_FORMAT_GOOGLE_R_8,         .cpu_wr = F_LIN, .cpu_rd = F_LIN, .gpu_wr = F_LIN|F_AFBC, .gpu_rd = F_LIN|F_AFBC, .dpu_wr = F_NONE, .dpu_rd = F_LIN, .dpu_aeu_wr = F_NONE, .vpu_wr = F_NONE, .vpu_rd = F_NONE, .cam_wr = F_LIN },
 	{ .id = HAL_PIXEL_FORMAT_GOOGLE_RG_88,       .cpu_wr = F_LIN, .cpu_rd = F_LIN, .gpu_wr = F_LIN|F_AFBC, .gpu_rd = F_LIN|F_AFBC, .dpu_wr = F_NONE, .dpu_rd = F_NONE, .dpu_aeu_wr = F_NONE, .vpu_wr = F_NONE, .vpu_rd = F_NONE, .cam_wr = F_LIN },
 	/* END ALIGNED SECTION */
 };
