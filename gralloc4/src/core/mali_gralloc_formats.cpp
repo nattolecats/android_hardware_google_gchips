@@ -1439,6 +1439,13 @@ uint32_t get_base_format(const uint64_t req_format,
 		{
 			base_format = HAL_PIXEL_FORMAT_EXYNOS_YCbCr_420_SPN;
 		}
+		else if ((usage & GRALLOC_USAGE_HW_CAMERA_WRITE) &&
+		         (usage & GRALLOC_USAGE_HW_CAMERA_READ) &&
+		         (usage & GRALLOC_USAGE_PROTECTED))
+		{
+			// Faceauth requires NV21 format
+			base_format = HAL_PIXEL_FORMAT_YCrCb_420_SP;
+		}
 		else
 		{
 			// Flexible framework-accessible YUV format;
