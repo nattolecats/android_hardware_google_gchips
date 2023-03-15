@@ -1430,20 +1430,25 @@ uint32_t get_base_format(const uint64_t req_format,
 		{
 			base_format = HAL_PIXEL_FORMAT_EXYNOS_YCbCr_420_SPN;
 		}
-		else if (usage & GRALLOC_USAGE_HW_CAMERA_WRITE)
+		else if ((usage & GRALLOC_USAGE_HW_TEXTURE) && (usage & GRALLOC_USAGE_HW_CAMERA_WRITE))
 		{
-			// Catchall for camera write. DO NOT CHANGE WITHOUT TESTING THESE SCENARIOS:
-			// 1. Camera capture and initial photo processing
-			// 2. Other major camera operations - video recording, portrait etc
-			// 3. Faceauth
-			// 4. Multi-profile user photo add
-			// 5. Capture and resize - use chat app to capture a photo
-			// Re-run these steps with GPU composition:
-			// adb shell service call SurfaceFlinger 1008 i32 1
+			// Camera flexible YUV format output maps to NV21.
+			base_format = HAL_PIXEL_FORMAT_YCrCb_420_SP;
+		}
+		else if (usage & (GRALLOC_USAGE_HW_RENDER | GRALLOC_USAGE_HW_TEXTURE))
+		{
+			base_format = HAL_PIXEL_FORMAT_EXYNOS_YCbCr_420_SPN;
+		}
+		else if ((usage & GRALLOC_USAGE_HW_CAMERA_WRITE) &&
+		         (usage & GRALLOC_USAGE_HW_CAMERA_READ) &&
+		         (usage & GRALLOC_USAGE_PROTECTED))
+		{
+			// Faceauth requires NV21 format
 			base_format = HAL_PIXEL_FORMAT_YCrCb_420_SP;
 		}
 		else
 		{
+			// Flexible framework-accessible YUV format;
 			base_format = HAL_PIXEL_FORMAT_EXYNOS_YCbCr_420_SPN;
 		}
 	}
