@@ -22,6 +22,7 @@
 #include <assert.h>
 #include <atomic>
 #include <algorithm>
+#include <set>
 #include <utils/Trace.h>
 
 #include <hardware/hardware.h>
@@ -792,35 +793,18 @@ static int prepare_descriptor_exynos_formats(
 		buffer_descriptor_t *bufDescriptor,
 		format_info_t format_info)
 {
-	int fd_count = 1;
 	int w = bufDescriptor->width;
 	int h = bufDescriptor->height;
 	uint64_t usage = bufDescriptor->producer_usage | bufDescriptor->consumer_usage;
 	int plane_count = 2;
 	int format = MALI_GRALLOC_INTFMT_FMT_MASK & bufDescriptor->alloc_format;
+	int fd_count = get_exynos_fd_count(format);
 
 	if (usage & (GRALLOC_USAGE_HW_VIDEO_ENCODER | GRALLOC_USAGE_HW_VIDEO_DECODER))
 	{
 		usage |= GRALLOC_USAGE_VIDEO_PRIVATE_DATA;
 		bufDescriptor->producer_usage |= GRALLOC_USAGE_VIDEO_PRIVATE_DATA;
 		bufDescriptor->consumer_usage |= GRALLOC_USAGE_VIDEO_PRIVATE_DATA;
-	}
-
-	/* set SBWC format fd_count */
-	fd_count = 1;
-	switch (format)
-	{
-		case HAL_PIXEL_FORMAT_EXYNOS_YCbCr_420_SP_M_SBWC:
-		case HAL_PIXEL_FORMAT_EXYNOS_YCrCb_420_SP_M_SBWC:
-		case HAL_PIXEL_FORMAT_EXYNOS_YCbCr_420_SP_M_10B_SBWC:
-		case HAL_PIXEL_FORMAT_EXYNOS_YCrCb_420_SP_M_10B_SBWC:
-		case HAL_PIXEL_FORMAT_EXYNOS_YCbCr_420_SP_M_SBWC_L50:
-		case HAL_PIXEL_FORMAT_EXYNOS_YCbCr_420_SP_M_SBWC_L75:
-		case HAL_PIXEL_FORMAT_EXYNOS_YCbCr_420_SP_M_10B_SBWC_L40:
-		case HAL_PIXEL_FORMAT_EXYNOS_YCbCr_420_SP_M_10B_SBWC_L60:
-		case HAL_PIXEL_FORMAT_EXYNOS_YCbCr_420_SP_M_10B_SBWC_L80:
-			fd_count = 2;
-			break;
 	}
 
 	/* SWBC Formats have special size requirements */
@@ -864,7 +848,6 @@ static int prepare_descriptor_exynos_formats(
 			break;
 
 		case HAL_PIXEL_FORMAT_YCrCb_420_SP:
-			fd_count = 1;
 			h = GRALLOC_ALIGN(h, 2);
 			plane_count = setup_420_sp(w, h, fd_count, bufDescriptor->plane_info);
 			break;
@@ -873,20 +856,17 @@ static int prepare_descriptor_exynos_formats(
 		case HAL_PIXEL_FORMAT_EXYNOS_YCbCr_420_P_M:
 			w = GRALLOC_ALIGN(w, 32);
 			h = GRALLOC_ALIGN(h, 16);
-			fd_count = 3;
 			plane_count = setup_420_p(w, h, fd_count, bufDescriptor->plane_info);
 			break;
 
 		case HAL_PIXEL_FORMAT_EXYNOS_YCbCr_420_SP_M_TILED:
 			w = GRALLOC_ALIGN(w, 16);
 			h = GRALLOC_ALIGN(h, 32);
-			fd_count = 2;
 			plane_count = setup_420_sp_tiled(w, h, fd_count, bufDescriptor->plane_info);
 			break;
 
 		case HAL_PIXEL_FORMAT_EXYNOS_YCbCr_420_P:
 			w = GRALLOC_ALIGN(w, 16);
-			fd_count = 1;
 			plane_count = setup_420_p(w, h, fd_count, bufDescriptor->plane_info);
 			break;
 
@@ -895,14 +875,12 @@ static int prepare_descriptor_exynos_formats(
 		case HAL_PIXEL_FORMAT_EXYNOS_YCbCr_420_SP_M:
 			w = GRALLOC_ALIGN(w, 16);
 			h = GRALLOC_ALIGN(h, 32);
-			fd_count = 2;
 			plane_count = setup_420_sp(w, h, fd_count, bufDescriptor->plane_info);
 			break;
 
 		case HAL_PIXEL_FORMAT_EXYNOS_YCbCr_420_SPN:
 			w = GRALLOC_ALIGN(w, 64);
 			h = GRALLOC_ALIGN(h, 16);
-			fd_count = 1;
 			plane_count = setup_420_sp(w, h, fd_count, bufDescriptor->plane_info);
 			break;
 
@@ -910,28 +888,24 @@ static int prepare_descriptor_exynos_formats(
 			/* This is 64 pixel align for now */
 			w = GRALLOC_ALIGN(w, BOARD_EXYNOS_S10B_FORMAT_ALIGN);
 			h = GRALLOC_ALIGN(h, 16);
-			fd_count = 2;
 			plane_count = setup_420_sp_s10b(w, h, fd_count, bufDescriptor->plane_info);
 			break;
 
 		case HAL_PIXEL_FORMAT_EXYNOS_YCbCr_420_SPN_S10B:
 			w = GRALLOC_ALIGN(w, BOARD_EXYNOS_S10B_FORMAT_ALIGN);
 			h = GRALLOC_ALIGN(h, 16);
-			fd_count = 1;
 			plane_count = setup_420_sp_s10b(w, h, fd_count, bufDescriptor->plane_info);
 			break;
 
 		case HAL_PIXEL_FORMAT_EXYNOS_YCbCr_P010_M:
 			w = GRALLOC_ALIGN(w, 16);
 			h = GRALLOC_ALIGN(h, 16);
-			fd_count = 2;
 			plane_count = setup_p010_sp(w, h, fd_count, bufDescriptor->plane_info);
 			break;
 
 		case HAL_PIXEL_FORMAT_EXYNOS_YCbCr_P010_SPN:
 			w = GRALLOC_ALIGN(w, 64);
 			h = GRALLOC_ALIGN(h, 16);
-			fd_count = 1;
 			plane_count = setup_p010_sp(w, h, fd_count, bufDescriptor->plane_info);
 			break;
 
@@ -1002,7 +976,6 @@ static int prepare_descriptor_exynos_formats(
 		bufDescriptor->alloc_sizes[fidx] = size;
 	}
 
-
 	bufDescriptor->fd_count = fd_count;
 	bufDescriptor->plane_count = plane_count;
 
@@ -1024,6 +997,22 @@ int mali_gralloc_derive_format_and_size(buffer_descriptor_t * const bufDescripto
 	bufDescriptor->alloc_format = mali_gralloc_select_format(bufDescriptor->hal_format,
 	                                                         bufDescriptor->format_type,
 	                                                         usage);
+
+	int base_format = bufDescriptor->alloc_format & MALI_GRALLOC_INTFMT_FMT_MASK;
+
+	// TODO(b/182885532): Delete all multi-fd related dead code from gralloc
+	if (is_exynos_format(base_format) && get_exynos_fd_count(base_format) != 1)
+	{
+		static std::set<uint32_t> seen_formats;
+		if (seen_formats.find(base_format) == seen_formats.end()) {
+			MALI_GRALLOC_LOGW("Multi-fd format (%s 0x%" PRIx64 ") have been deprecated. Requested format: %s 0x%" PRIx64
+					". Consider changing the format to one of the single-fd options.",
+					format_name(base_format), static_cast<uint64_t>(base_format),
+					format_name(bufDescriptor->hal_format), bufDescriptor->hal_format);
+			seen_formats.insert(base_format);
+		}
+	}
+
 	if (bufDescriptor->alloc_format == MALI_GRALLOC_FORMAT_INTERNAL_UNDEFINED)
 	{
 		MALI_GRALLOC_LOGE("ERROR: Unrecognized and/or unsupported format (%s 0x%" PRIx64 ") and usage (%s 0x%" PRIx64 ")",
@@ -1032,7 +1021,7 @@ int mali_gralloc_derive_format_and_size(buffer_descriptor_t * const bufDescripto
 		return -EINVAL;
 	}
 
-	int32_t format_idx = get_format_index(bufDescriptor->alloc_format & MALI_GRALLOC_INTFMT_FMT_MASK);
+	int32_t format_idx = get_format_index(base_format);
 	if (format_idx == -1)
 	{
 		return -EINVAL;
@@ -1054,7 +1043,7 @@ int mali_gralloc_derive_format_and_size(buffer_descriptor_t * const bufDescripto
 		return -EINVAL;
 	}
 
-	if (is_exynos_format(bufDescriptor->alloc_format))
+	if (is_exynos_format(base_format))
 	{
 		prepare_descriptor_exynos_formats(bufDescriptor, formats[format_idx]);
 	}
@@ -1087,7 +1076,7 @@ int mali_gralloc_derive_format_and_size(buffer_descriptor_t * const bufDescripto
 	}
 
 	/* Set pixel stride differently for RAW formats */
-	switch (MALI_GRALLOC_INTFMT_FMT_MASK & bufDescriptor->alloc_format)
+	switch (base_format)
 	{
 		case MALI_GRALLOC_FORMAT_INTERNAL_RAW12:
 		case MALI_GRALLOC_FORMAT_INTERNAL_RAW10:
@@ -1133,7 +1122,6 @@ int mali_gralloc_derive_format_and_size(buffer_descriptor_t * const bufDescripto
 
 	return 0;
 }
-
 
 int mali_gralloc_buffer_allocate(const gralloc_buffer_descriptor_t *descriptors,
                                  uint32_t numDescriptors, buffer_handle_t *pHandle, bool *shared_backend,
