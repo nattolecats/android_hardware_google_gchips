@@ -371,4 +371,6 @@ bool is_subsampled_yuv(const uint32_t base_format);
 
 bool is_exynos_format(uint32_t base_format);
 
+uint8_t get_exynos_fd_count(uint32_t format);
+
 #endif /* MALI_GRALLOC_FORMATS_H_ */
