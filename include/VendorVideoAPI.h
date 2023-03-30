@@ -81,10 +81,6 @@ typedef struct _ExynosHdrStaticInfo {
     };
 } ExynosHdrStaticInfo;
 
-#ifdef USE_FULL_ST2094_40
-#define USE_FULL_ST2094_40_INFO
-#endif
-
 typedef struct _ExynosHdrData_ST2094_40 {
     unsigned char  country_code;
     unsigned short provider_code;
@@ -93,7 +89,6 @@ typedef struct _ExynosHdrData_ST2094_40 {
     unsigned char  application_identifier;
     unsigned char  application_version;
 
-#ifdef USE_FULL_ST2094_40
     unsigned char num_windows;
 
     unsigned short window_upper_left_corner_x[2];
@@ -138,22 +133,6 @@ typedef struct _ExynosHdrData_ST2094_40 {
 
     unsigned char color_saturation_mapping_flag[3];
     unsigned char color_saturation_weight[3];
-#else
-    unsigned int  display_maximum_luminance;
-    unsigned int maxscl[3];
-
-    unsigned char num_maxrgb_percentiles;
-    unsigned char maxrgb_percentages[15];
-    unsigned int  maxrgb_percentiles[15];
-
-    struct {
-        unsigned short  tone_mapping_flag;
-        unsigned short  knee_point_x;
-        unsigned short  knee_point_y;
-        unsigned short  num_bezier_curve_anchors;
-        unsigned short  bezier_curve_anchors[15];
-    } tone_mapping;
-#endif
 } ExynosHdrData_ST2094_40;
 
 typedef struct _ExynosHdrDynamicInfo {
