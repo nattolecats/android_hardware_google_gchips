@@ -54,17 +54,6 @@
 #include <array>
 #include <string>
 
-#define INIT_ZERO(obj) (memset(&(obj), 0, sizeof((obj))))
-
-#define HEAP_MASK_FROM_ID(id) (1 << id)
-#define HEAP_MASK_FROM_TYPE(type) (1 << type)
-
-#if defined(ION_HEAP_SECURE_MASK)
-#if (HEAP_MASK_FROM_TYPE(ION_HEAP_TYPE_SECURE) != ION_HEAP_SECURE_MASK)
-#error "ION_HEAP_TYPE_SECURE value is not compatible with ION_HEAP_SECURE_MASK"
-#endif
-#endif
-
 static const char kDmabufSensorDirectHeapName[] = "sensor_direct_heap";
 static const char kDmabufFaceauthTpuHeapName[] = "faceauth_tpu-secure";
 static const char kDmabufFaceauthImgHeapName[] = "faimg-secure";
@@ -76,45 +65,18 @@ static const char kDmabufVstreamSecureHeapName[] = "vstream-secure";
 
 struct ion_device
 {
-	int client()
-	{
-		return ion_client;
-	}
-
-	static void close()
-	{
-		ion_device &dev = get_inst();
-		if (dev.ion_client >= 0)
-		{
-			exynos_ion_close(dev.ion_client);
-			dev.ion_client = -1;
-		}
-
-		dev.buffer_allocator.reset();
-	}
-
 	static ion_device *get()
 	{
-		ion_device &dev = get_inst();
+		static ion_device dev;
 		if (!dev.buffer_allocator)
 		{
 			dev.buffer_allocator = std::make_unique<BufferAllocator>();
-			if (!dev.buffer_allocator)
+			if (!dev.buffer_allocator) {
 				ALOGE("Unable to create BufferAllocator object");
-		}
-
-		if (dev.ion_client < 0)
-		{
-			if (dev.open_and_query_ion() != 0)
-			{
-				close();
+				return nullptr;
 			}
 		}
 
-		if (dev.ion_client < 0)
-		{
-			return nullptr;
-		}
 		return &dev;
 	}
 
@@ -125,14 +87,12 @@ struct ion_device
 	 * @param size      [in]    Requested buffer size (in bytes).
 	 * @param heap_type [in]    Requested heap type.
 	 * @param flags     [in]    ION allocation attributes defined by ION_FLAG_*.
-	 * @param min_pgsz  [out]   Minimum page size (in bytes).
 	 * @buffer_name     [in]    Optional name specifying what the buffer is for.
 	 *
 	 * @return File handle which can be used for allocation, on success
 	 *         -1, otherwise.
 	 */
-	int alloc_from_ion_heap(uint64_t usage, size_t size, unsigned int flags, int *min_pgsz,
-				const std::string& buffer_name = std::string());
+	int alloc_from_ion_heap(uint64_t usage, size_t size, unsigned int flags, const std::string& buffer_name = std::string());
 
 	/*
 	 *  Signals the start or end of a region where the CPU is accessing a
@@ -150,27 +110,7 @@ struct ion_device
 	int sync(int fd, bool read, bool write, bool start);
 
 private:
-	int ion_client;
 	std::unique_ptr<BufferAllocator> buffer_allocator;
-
-	ion_device()
-	    : ion_client(-1)
-	{
-	}
-
-	static ion_device& get_inst()
-	{
-		static ion_device dev;
-		return dev;
-	}
-
-	/*
-	 * Opens the ION module. Queries heap information and stores it for later use
-	 *
-	 * @return              0 in case of success
-	 *                      -1 for all error cases
-	 */
-	int open_and_query_ion();
 
 	/*
 	 *  Allocates in the DMA-BUF heap with name @heap_name. If allocation fails from
@@ -207,14 +147,6 @@ static void set_ion_flags(uint64_t usage, unsigned int *ion_flags)
 	{
 		*ion_flags |= ION_FLAG_PROTECTED;
 	}
-
-	/* TODO: used for exynos3830. Add this as an option to Android.bp */
-#if defined(GRALLOC_SCALER_WFD) && GRALLOC_SCALER_WFD == 1
-	if (usage & GRALLOC_USAGE_PRIVATE_NONSECURE && usage & GRALLOC_USAGE_HW_COMPOSER)
-	{
-		*ion_flags |= ION_FLAG_PROTECTED;
-	}
-#endif
 	/* Sensor direct channels require uncached allocations. */
 	if (usage & GRALLOC_USAGE_SENSOR_DIRECT_DATA)
 	{
@@ -295,13 +227,6 @@ static unsigned int select_heap_mask(uint64_t usage)
 			heap_mask = EXYNOS_ION_HEAP_VIDEO_FRAME_MASK;
 		}
 	}
-	/* TODO: used for exynos3830. Add this as a an option to Android.bp */
-#if defined(GRALLOC_SCALER_WFD) && GRALLOC_SCALER_WFD == 1
-	else if (usage & GRALLOC_USAGE_PRIVATE_NONSECURE && usage & GRALLOC_USAGE_HW_COMPOSER)
-	{
-		heap_mask = EXYNOS_ION_HEAP_EXT_UI_MASK;
-	}
-#endif
 	else if (usage & GRALLOC_USAGE_SENSOR_DIRECT_DATA)
 	{
 		heap_mask = EXYNOS_ION_HEAP_SENSOR_DIRECT_MASK;
@@ -372,12 +297,10 @@ int ion_device::alloc_from_dmabuf_heap(const std::string& heap_name, size_t size
 	return shared_fd;
 }
 
-int ion_device::alloc_from_ion_heap(uint64_t usage, size_t size, unsigned int flags, int *min_pgsz,
-				    const std::string& buffer_name)
+int ion_device::alloc_from_ion_heap(uint64_t usage, size_t size, unsigned int flags, const std::string& buffer_name)
 {
 	ATRACE_CALL();
-	/* TODO: remove min_pgsz? I don't think this is useful on Exynos */
-	if (size == 0 || min_pgsz == NULL)
+	if (size == 0)
 	{
 		return -1;
 	}
@@ -392,35 +315,10 @@ int ion_device::alloc_from_ion_heap(uint64_t usage, size_t size, unsigned int fl
 	}
 	else
 	{
-		if (ion_client < 0)
-		{
-			return -1;
-		}
-
-		shared_fd = exynos_ion_alloc(ion_client, size, heap_mask, flags);
+		shared_fd = exynos_ion_alloc(0, size, heap_mask, flags);
 	}
-
-	*min_pgsz = SZ_4K;
 
 	return shared_fd;
-}
-
-int ion_device::open_and_query_ion()
-{
-	if (ion_client >= 0)
-	{
-		MALI_GRALLOC_LOGW("ION device already open");
-		return 0;
-	}
-
-	ion_client = exynos_ion_open();
-	if (ion_client < 0)
-	{
-		MALI_GRALLOC_LOGE("ion_open failed with %s", strerror(errno));
-		return -1;
-	}
-
-	return 0;
 }
 
 static SyncType sync_type_for_flags(const bool read, const bool write)
@@ -568,15 +466,14 @@ int mali_gralloc_ion_allocate_attr(private_handle_t *hnd)
 
 	int idx = hnd->get_share_attr_fd_index();
 	int ion_flags = 0;
-	int min_pgsz;
 	uint64_t usage = GRALLOC_USAGE_SW_READ_OFTEN | GRALLOC_USAGE_SW_WRITE_OFTEN;
 
 	ion_flags = ION_FLAG_CACHED;
 
-	hnd->fds[idx] = dev->alloc_from_ion_heap(usage, hnd->attr_size, ion_flags, &min_pgsz);
+	hnd->fds[idx] = dev->alloc_from_ion_heap(usage, hnd->attr_size, ion_flags);
 	if (hnd->fds[idx] < 0)
 	{
-		MALI_GRALLOC_LOGE("ion_alloc failed from client ( %d )", dev->client());
+		MALI_GRALLOC_LOGE("ion_alloc failed");
 		return -1;
 	}
 
@@ -606,7 +503,6 @@ int mali_gralloc_ion_allocate(const gralloc_buffer_descriptor_t *descriptors,
 	uint64_t usage;
 	uint32_t i;
 	unsigned int ion_flags = 0;
-	int min_pgsz = 0;
 	int fds[MAX_FDS];
 	std::fill(fds, fds + MAX_FDS, -1);
 
@@ -630,11 +526,11 @@ int mali_gralloc_ion_allocate(const gralloc_buffer_descriptor_t *descriptors,
 				fds[fidx] = ion_fd;
 			} else {
 				fds[fidx] = dev->alloc_from_ion_heap(usage, bufDescriptor->alloc_sizes[fidx], ion_flags,
-								     &min_pgsz, bufDescriptor->name);
+								     bufDescriptor->name);
 			}
 			if (fds[fidx] < 0)
 			{
-				MALI_GRALLOC_LOGE("ion_alloc failed from client ( %d )", dev->client());
+				MALI_GRALLOC_LOGE("ion_alloc failed");
 
 				for (int cidx = 0; cidx < fidx; cidx++)
 				{
@@ -692,7 +588,7 @@ int mali_gralloc_ion_allocate(const gralloc_buffer_descriptor_t *descriptors,
 
 			if (MAP_FAILED == cpu_ptr)
 			{
-				MALI_GRALLOC_LOGE("mmap failed from client ( %d ), fd ( %d )", dev->client(), hnd->fds[0]);
+				MALI_GRALLOC_LOGE("mmap failed for fd ( %d )", hnd->fds[0]);
 				mali_gralloc_ion_free_internal(pHandle, numDescriptors);
 				return -1;
 			}
@@ -760,59 +656,6 @@ int mali_gralloc_ion_map(private_handle_t *hnd)
 	return 0;
 }
 
-int import_exynos_ion_handles(private_handle_t *hnd)
-{
-	int retval = -1;
-
-	ion_device *dev = ion_device::get();
-
-	for (int idx = 0; idx < hnd->fd_count; idx++)
-	{
-		if (hnd->fds[idx] >= 0)
-		{
-			retval = exynos_ion_import_handle(dev->client(), hnd->fds[idx], &hnd->ion_handles[idx]);
-			if (retval)
-			{
-				MALI_GRALLOC_LOGE("error importing ion_handle. ion_client(%d), ion_handle[%d](%d) format(%s %#" PRIx64 ")",
-				     dev->client(), idx, hnd->ion_handles[idx], format_name(hnd->alloc_format), hnd->alloc_format);
-				goto error;
-			}
-		}
-	}
-
-	return retval;
-
-error:
-	for (int idx = 0; idx < hnd->fd_count; idx++)
-	{
-		if (hnd->ion_handles[idx])
-		{
-			exynos_ion_free_handle(dev->client(), hnd->ion_handles[idx]);
-		}
-	}
-
-	return retval;
-}
-
-void free_exynos_ion_handles(private_handle_t *hnd)
-{
-	ion_device *dev = ion_device::get();
-
-	for (int idx = 0; idx < hnd->fd_count; idx++)
-	{
-		if (hnd->ion_handles[idx])
-		{
-			if (hnd->ion_handles[idx] &&
-			    exynos_ion_free_handle(dev->client(), hnd->ion_handles[idx]))
-			{
-				MALI_GRALLOC_LOGE("error freeing ion_handle. ion_client(%d), ion_handle[%d](%d) format(%s %#" PRIx64 ")",
-					dev->client(), idx, hnd->ion_handles[idx], format_name(hnd->alloc_format), hnd->alloc_format);
-			}
-		}
-	}
-}
-
-
 void mali_gralloc_ion_unmap(private_handle_t *hnd)
 {
 	for (int i = 0; i < hnd->fd_count; i++)
@@ -838,9 +681,3 @@ void mali_gralloc_ion_unmap(private_handle_t *hnd)
 	hnd->cpu_read = 0;
 	hnd->cpu_write = 0;
 }
-
-void mali_gralloc_ion_close(void)
-{
-	ion_device::close();
-}
-
