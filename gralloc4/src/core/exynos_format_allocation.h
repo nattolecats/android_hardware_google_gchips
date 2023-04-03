@@ -16,12 +16,7 @@
 
 #pragma once
 
-#if __has_include(<linux/videodev2_exynos_media.h>)
 #include <linux/videodev2_exynos_media.h>
-#else
-#include "mfc_macros_local.h"
-#endif
-
 #include <gralloc_priv.h>
 
 #define PLANE_SIZE(w, h)      ((w) * (h))
