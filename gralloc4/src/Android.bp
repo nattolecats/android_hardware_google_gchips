@@ -68,7 +68,6 @@ cc_library_shared {
 		"libhidlbase",
 		"libhidltransport",
 		"libnativewindow",
-		"libion_google",
 		"android.hardware.graphics.common@1.2",
 		"android.hardware.graphics.common-V4-ndk",
 		"android.hardware.graphics.mapper@4.0",
