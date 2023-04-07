@@ -36,9 +36,6 @@
 #include <hardware/hardware.h>
 #include <hardware/gralloc1.h>
 
-#include <hardware/exynos/ion.h>
-#include <hardware/exynos/dmabuf_container.h>
-
 #include <BufferAllocator/BufferAllocator.h>
 #include "mali_gralloc_buffer.h"
 #include "gralloc_helper.h"
@@ -85,13 +82,12 @@ struct ion_device
 	 *
 	 * @param usage     [in]    Producer and consumer combined usage.
 	 * @param size      [in]    Requested buffer size (in bytes).
-	 * @param flags     [in]    ION allocation attributes defined by ION_FLAG_*.
 	 * @buffer_name     [in]    Optional name specifying what the buffer is for.
 	 *
 	 * @return File handle which can be used for allocation, on success
 	 *         -EINVAL, otherwise.
 	 */
-	int alloc_from_dmabuf_heap(uint64_t usage, size_t size, unsigned int flags, const std::string& buffer_name = "");
+	int alloc_from_dmabuf_heap(uint64_t usage, size_t size, const std::string& buffer_name = "");
 
 	/*
 	 *  Signals the start or end of a region where the CPU is accessing a
@@ -112,58 +108,74 @@ private:
 	std::unique_ptr<BufferAllocator> buffer_allocator;
 };
 
-static void set_ion_flags(uint64_t usage, unsigned int *ion_flags)
-{
-	if (ion_flags == nullptr)
-		return;
-
-	if ((usage & GRALLOC_USAGE_SW_READ_MASK) == GRALLOC_USAGE_SW_READ_OFTEN)
-	{
-		*ion_flags |= ION_FLAG_CACHED;
-	}
-
-	// DRM or Secure Camera
-	if (usage & (GRALLOC_USAGE_PROTECTED))
-	{
-		*ion_flags |= ION_FLAG_PROTECTED;
-	}
-	/* Sensor direct channels require uncached allocations. */
-	if (usage & GRALLOC_USAGE_SENSOR_DIRECT_DATA)
-	{
-		*ion_flags &= ~ION_FLAG_CACHED;
-	}
-}
-
-static unsigned int select_faceauth_heap_mask(uint64_t usage)
+static std::string select_dmabuf_heap(uint64_t usage)
 {
 	struct HeapSpecifier
 	{
 		uint64_t      usage_bits; // exact match required
-		unsigned int  mask;
+		std::string   name;
 	};
 
-	static constexpr std::array<HeapSpecifier, 5> faceauth_heaps =
+	static const std::array<HeapSpecifier, 5> faceauth_heaps =
 	{{
+		// Faceauth heaps
 		{ // isp_image_heap
 			GRALLOC_USAGE_PROTECTED | GRALLOC_USAGE_HW_CAMERA_WRITE | GS101_GRALLOC_USAGE_TPU_INPUT,
-			EXYNOS_ION_HEAP_FA_IMG_MASK
+			kDmabufFaceauthImgHeapName
 		},
 		{ // isp_internal_heap
 			GRALLOC_USAGE_PROTECTED | GRALLOC_USAGE_HW_CAMERA_WRITE | GRALLOC_USAGE_HW_CAMERA_READ,
-			EXYNOS_ION_HEAP_FA_RAWIMG_MASK
+			kDmabufFaceauthRawImgHeapName
 		},
 		{ // isp_preview_heap
 			GRALLOC_USAGE_PROTECTED | GRALLOC_USAGE_HW_CAMERA_WRITE | GRALLOC_USAGE_HW_COMPOSER |
             GRALLOC_USAGE_HW_TEXTURE,
-			EXYNOS_ION_HEAP_FA_PREV_MASK
+			kDmabufFaceauthPrevHeapName
 		},
 		{ // ml_model_heap
 			GRALLOC_USAGE_PROTECTED | GS101_GRALLOC_USAGE_TPU_INPUT,
-			EXYNOS_ION_HEAP_FA_MODEL_MASK
+			kDmabufFaceauthModelHeapName
 		},
 		{ // tpu_heap
 			GRALLOC_USAGE_PROTECTED | GS101_GRALLOC_USAGE_TPU_OUTPUT | GS101_GRALLOC_USAGE_TPU_INPUT,
-			EXYNOS_ION_HEAP_FA_TPU_MASK
+			kDmabufFaceauthTpuHeapName
+		},
+	}};
+
+	static const std::array<HeapSpecifier, 6> other_heaps =
+	{{
+		// If GPU, use vframe-secure
+		{
+			GRALLOC_USAGE_PROTECTED | GRALLOC_USAGE_HW_TEXTURE,
+			kDmabufVframeSecureHeapName
+		},
+		{
+			GRALLOC_USAGE_PROTECTED | GRALLOC_USAGE_HW_RENDER,
+			kDmabufVframeSecureHeapName
+		},
+
+		// If HWC but not GPU
+		{
+			GRALLOC_USAGE_PROTECTED | GRALLOC_USAGE_HW_COMPOSER,
+			kDmabufVscalerSecureHeapName
+		},
+
+		// Catchall for protected
+		{
+			GRALLOC_USAGE_PROTECTED,
+			kDmabufVframeSecureHeapName
+		},
+
+		// Sensor heap
+		{
+			GRALLOC_USAGE_SENSOR_DIRECT_DATA,
+			kDmabufSensorDirectHeapName
+		},
+
+		// Catchall to system
+		{
+			0,
+			kDmabufSystemUncachedHeapName
 		}
 	}};
 
@@ -171,110 +183,41 @@ static unsigned int select_faceauth_heap_mask(uint64_t usage)
 	{
 		if (usage == heap.usage_bits)
 		{
-			ALOGV("Using FaceAuth heap mask 0x%x for usage 0x%" PRIx64 "\n",
-			      heap.mask, usage);
-			return heap.mask;
+			return heap.name;
 		}
 	}
 
-	return 0;
+	std::string heap_name;
+	for (const HeapSpecifier &heap : other_heaps)
+	{
+		if ((usage & heap.usage_bits) == heap.usage_bits)
+		{
+			heap_name = heap.name;
+			break;
+		}
+	}
+
+	if (heap_name == kDmabufSystemUncachedHeapName &&
+		  ((usage & GRALLOC_USAGE_SW_READ_MASK) == GRALLOC_USAGE_SW_READ_OFTEN))
+		heap_name = kDmabufSystemHeapName;
+
+	return heap_name;
 }
 
-static unsigned int select_heap_mask(uint64_t usage)
-{
-	if (unsigned int faceauth_heap_mask = select_faceauth_heap_mask(usage);
-	    faceauth_heap_mask != 0)
-	{
-		return faceauth_heap_mask;
-	}
-
-	unsigned int heap_mask;
-
-	if (usage & GRALLOC_USAGE_PROTECTED)
-	{
-		if (usage & GRALLOC_USAGE_PRIVATE_NONSECURE)
-		{
-			heap_mask = EXYNOS_ION_HEAP_SYSTEM_MASK;
-		}
-		else if ((usage & GRALLOC_USAGE_HW_COMPOSER) &&
-			!(usage & GRALLOC_USAGE_HW_TEXTURE) &&
-			!(usage & GRALLOC_USAGE_HW_RENDER))
-		{
-			heap_mask = EXYNOS_ION_HEAP_VIDEO_SCALER_MASK;
-		}
-		else
-		{
-			heap_mask = EXYNOS_ION_HEAP_VIDEO_FRAME_MASK;
-		}
-	}
-	else if (usage & GRALLOC_USAGE_SENSOR_DIRECT_DATA)
-	{
-		heap_mask = EXYNOS_ION_HEAP_SENSOR_DIRECT_MASK;
-	}
-	else
-	{
-		heap_mask = EXYNOS_ION_HEAP_SYSTEM_MASK;
-	}
-
-	return heap_mask;
-}
-
-/*
- * Selects a DMA-BUF heap name.
- *
- * @param heap_mask     [in]    heap_mask for which the equivalent DMA-BUF heap
- *                              name must be found.
- *
- * @return the name of the DMA-BUF heap equivalent to the ION heap of mask
- *         @heap_mask.
- *
- */
-static std::string select_dmabuf_heap(unsigned int heap_mask, unsigned int ion_flags)
-{
-	bool cached = ion_flags & ION_FLAG_CACHED;
-
-	switch (heap_mask) {
-		case EXYNOS_ION_HEAP_SENSOR_DIRECT_MASK:
-			return kDmabufSensorDirectHeapName;
-		case EXYNOS_ION_HEAP_FA_TPU_MASK:
-			return kDmabufFaceauthTpuHeapName;
-		case EXYNOS_ION_HEAP_FA_IMG_MASK:
-			return kDmabufFaceauthImgHeapName;
-		case EXYNOS_ION_HEAP_FA_RAWIMG_MASK:
-			return kDmabufFaceauthRawImgHeapName;
-		case EXYNOS_ION_HEAP_FA_PREV_MASK:
-			return kDmabufFaceauthPrevHeapName;
-		case EXYNOS_ION_HEAP_FA_MODEL_MASK:
-			return kDmabufFaceauthModelHeapName;
-		case EXYNOS_ION_HEAP_VIDEO_SCALER_MASK:
-			return kDmabufVscalerSecureHeapName;
-		case EXYNOS_ION_HEAP_VIDEO_FRAME_MASK:
-			return kDmabufVframeSecureHeapName;
-		case EXYNOS_ION_HEAP_VIDEO_STREAM_MASK:
-			return kDmabufVstreamSecureHeapName;
-		case EXYNOS_ION_HEAP_SYSTEM_MASK:
-			return cached ? kDmabufSystemHeapName : kDmabufSystemUncachedHeapName;
-		default:
-			return {};
-	}
-}
-
-int ion_device::alloc_from_dmabuf_heap(uint64_t usage, size_t size, unsigned int flags, const std::string& buffer_name)
+int ion_device::alloc_from_dmabuf_heap(uint64_t usage, size_t size, const std::string& buffer_name)
 {
 	ATRACE_CALL();
 	if (size == 0) { return -1; }
 	if (!buffer_allocator) { return -1; }
 
-	unsigned int heap_mask = select_heap_mask(usage);
-
-	auto heap_name = select_dmabuf_heap(heap_mask, flags);
+	auto heap_name = select_dmabuf_heap(usage);
 	if (heap_name.empty()) {
 			MALI_GRALLOC_LOGW("No heap found for usage: %s (0x%" PRIx64 ")", describe_usage(usage).c_str(), usage);
 			return -EINVAL;
 	}
 
 	ATRACE_NAME(("alloc_from_dmabuf_heap " +  heap_name).c_str());
-	int shared_fd = buffer_allocator->Alloc(heap_name, size, flags);
+	int shared_fd = buffer_allocator->Alloc(heap_name, size, 0);
 	if (shared_fd < 0)
 	{
 		ALOGE("Allocation failed for heap %s error: %d\n", heap_name.c_str(), shared_fd);
@@ -433,12 +376,9 @@ int mali_gralloc_ion_allocate_attr(private_handle_t *hnd)
 	}
 
 	int idx = hnd->get_share_attr_fd_index();
-	int ion_flags = 0;
 	uint64_t usage = GRALLOC_USAGE_SW_READ_OFTEN | GRALLOC_USAGE_SW_WRITE_OFTEN;
 
-	ion_flags = ION_FLAG_CACHED;
-
-	hnd->fds[idx] = dev->alloc_from_dmabuf_heap(usage, hnd->attr_size, ion_flags);
+	hnd->fds[idx] = dev->alloc_from_dmabuf_heap(usage, hnd->attr_size);
 	if (hnd->fds[idx] < 0)
 	{
 		MALI_GRALLOC_LOGE("ion_alloc failed");
@@ -470,7 +410,6 @@ int mali_gralloc_ion_allocate(const gralloc_buffer_descriptor_t *descriptors,
 	unsigned int priv_heap_flag = 0;
 	uint64_t usage;
 	uint32_t i;
-	unsigned int ion_flags = 0;
 	int fds[MAX_FDS];
 	std::fill(fds, fds + MAX_FDS, -1);
 
@@ -485,16 +424,12 @@ int mali_gralloc_ion_allocate(const gralloc_buffer_descriptor_t *descriptors,
 		buffer_descriptor_t *bufDescriptor = (buffer_descriptor_t *)(descriptors[i]);
 		usage = bufDescriptor->consumer_usage | bufDescriptor->producer_usage;
 
-		ion_flags = 0;
-		set_ion_flags(usage, &ion_flags);
-
 		for (int fidx = 0; fidx < bufDescriptor->fd_count; fidx++)
 		{
 			if (ion_fd >= 0 && fidx == 0) {
 				fds[fidx] = ion_fd;
 			} else {
-				fds[fidx] = dev->alloc_from_dmabuf_heap(usage, bufDescriptor->alloc_sizes[fidx], ion_flags,
-								     bufDescriptor->name);
+				fds[fidx] = dev->alloc_from_dmabuf_heap(usage, bufDescriptor->alloc_sizes[fidx], bufDescriptor->name);
 			}
 			if (fds[fidx] < 0)
 			{
