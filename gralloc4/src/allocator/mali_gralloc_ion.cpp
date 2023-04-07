@@ -59,10 +59,21 @@ static const char kDmabufFaceauthModelHeapName[] = "famodel-secure";
 static const char kDmabufVframeSecureHeapName[] = "vframe-secure";
 static const char kDmabufVstreamSecureHeapName[] = "vstream-secure";
 static const char kDmabufVscalerSecureHeapName[] = "vscaler-secure";
+static const char kDmabufFramebufferSecureHeapName[] = "framebuffer-secure";
 
 BufferAllocator& get_allocator() {
 		static BufferAllocator allocator;
 		return allocator;
+}
+
+std::string find_first_available_heap(const std::initializer_list<std::string>&& options) {
+	static auto available_heaps = BufferAllocator::GetDmabufHeapList();
+
+	for (const auto& heap: options)
+		if (available_heaps.find(heap) != available_heaps.end())
+			return heap;
+
+	return "";
 }
 
 std::string select_dmabuf_heap(uint64_t usage)
@@ -73,8 +84,7 @@ std::string select_dmabuf_heap(uint64_t usage)
 		std::string   name;
 	};
 
-	// exact match required
-	static const std::array<HeapSpecifier, 5> faceauth_heaps =
+	static const std::array<HeapSpecifier, 6> exact_usage_heaps =
 	{{
 		// Faceauth heaps
 		{ // isp_image_heap
@@ -98,9 +108,15 @@ std::string select_dmabuf_heap(uint64_t usage)
 			GRALLOC_USAGE_PROTECTED | GS101_GRALLOC_USAGE_TPU_OUTPUT | GS101_GRALLOC_USAGE_TPU_INPUT,
 			kDmabufFaceauthTpuHeapName
 		},
+
+		{
+			GRALLOC_USAGE_PROTECTED | GRALLOC_USAGE_HW_TEXTURE | GRALLOC_USAGE_HW_RENDER |
+			GRALLOC_USAGE_HW_COMPOSER | GRALLOC_USAGE_HW_FB,
+			find_first_available_heap({kDmabufFramebufferSecureHeapName, kDmabufVframeSecureHeapName})
+		},
 	}};
 
-	static const std::array<HeapSpecifier, 6> other_heaps =
+	static const std::array<HeapSpecifier, 6> inexact_usage_heaps =
 	{{
 		// If GPU, use vframe-secure
 		{
@@ -137,7 +153,7 @@ std::string select_dmabuf_heap(uint64_t usage)
 		}
 	}};
 
-	for (const HeapSpecifier &heap : faceauth_heaps)
+	for (const HeapSpecifier &heap : exact_usage_heaps)
 	{
 		if (usage == heap.usage_bits)
 		{
@@ -145,21 +161,19 @@ std::string select_dmabuf_heap(uint64_t usage)
 		}
 	}
 
-	std::string heap_name;
-	for (const HeapSpecifier &heap : other_heaps)
+	for (const HeapSpecifier &heap : inexact_usage_heaps)
 	{
 		if ((usage & heap.usage_bits) == heap.usage_bits)
 		{
-			heap_name = heap.name;
-			break;
+			if (heap.name == kDmabufSystemUncachedHeapName &&
+			    ((usage & GRALLOC_USAGE_SW_READ_MASK) == GRALLOC_USAGE_SW_READ_OFTEN))
+				return kDmabufSystemHeapName;
+
+			return heap.name;
 		}
 	}
 
-	if (heap_name == kDmabufSystemUncachedHeapName &&
-		  ((usage & GRALLOC_USAGE_SW_READ_MASK) == GRALLOC_USAGE_SW_READ_OFTEN))
-		heap_name = kDmabufSystemHeapName;
-
-	return heap_name;
+	return "";
 }
 
 int alloc_from_dmabuf_heap(uint64_t usage, size_t size, const std::string& buffer_name = "")
