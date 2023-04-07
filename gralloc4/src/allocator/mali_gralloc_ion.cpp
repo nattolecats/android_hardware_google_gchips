@@ -29,7 +29,6 @@
 #include <cutils/atomic.h>
 #include <utils/Trace.h>
 
-
 #include <linux/dma-buf.h>
 #include <vector>
 #include <sys/ioctl.h>
@@ -62,6 +61,7 @@ static const char kDmabufFaceauthPrevHeapName[] = "faprev-secure";
 static const char kDmabufFaceauthModelHeapName[] = "famodel-secure";
 static const char kDmabufVframeSecureHeapName[] = "vframe-secure";
 static const char kDmabufVstreamSecureHeapName[] = "vstream-secure";
+static const char kDmabufVscalerSecureHeapName[] = "vscaler-secure";
 
 struct ion_device
 {
@@ -81,18 +81,17 @@ struct ion_device
 	}
 
 	/*
-	 *  Identifies a heap and retrieves file descriptor from ION for allocation
+	 *  Identifies a heap and allocates from that heap
 	 *
 	 * @param usage     [in]    Producer and consumer combined usage.
 	 * @param size      [in]    Requested buffer size (in bytes).
-	 * @param heap_type [in]    Requested heap type.
 	 * @param flags     [in]    ION allocation attributes defined by ION_FLAG_*.
 	 * @buffer_name     [in]    Optional name specifying what the buffer is for.
 	 *
 	 * @return File handle which can be used for allocation, on success
-	 *         -1, otherwise.
+	 *         -EINVAL, otherwise.
 	 */
-	int alloc_from_ion_heap(uint64_t usage, size_t size, unsigned int flags, const std::string& buffer_name = std::string());
+	int alloc_from_dmabuf_heap(uint64_t usage, size_t size, unsigned int flags, const std::string& buffer_name = "");
 
 	/*
 	 *  Signals the start or end of a region where the CPU is accessing a
@@ -111,25 +110,6 @@ struct ion_device
 
 private:
 	std::unique_ptr<BufferAllocator> buffer_allocator;
-
-	/*
-	 *  Allocates in the DMA-BUF heap with name @heap_name. If allocation fails from
-	 *  the DMA-BUF heap or if it does not exist, falls back to an ION heap of the
-	 *  same name.
-	 *
-	 * @param heap_name [in]    DMA-BUF heap name for allocation
-	 * @param size      [in]    Requested buffer size (in bytes).
-	 * @param flags     [in]    ION allocation attributes defined by ION_FLAG_* to
-	 *                          be used for ION allocations. Will not be used with
-	 *                          DMA-BUF heaps since the framework does not support
-	 *                          allocation flags.
-	 * @buffer_name     [in]    Name specifying what the buffer is for.
-	 *
-	 * @return fd of the allocated buffer on success, -1 otherwise;
-	 */
-
-	int alloc_from_dmabuf_heap(const std::string& heap_name, size_t size, unsigned int flags,
-				   const std::string& buffer_name);
 };
 
 static void set_ion_flags(uint64_t usage, unsigned int *ion_flags)
@@ -249,8 +229,10 @@ static unsigned int select_heap_mask(uint64_t usage)
  *         @heap_mask.
  *
  */
-static std::string select_dmabuf_heap(unsigned int heap_mask)
+static std::string select_dmabuf_heap(unsigned int heap_mask, unsigned int ion_flags)
 {
+	bool cached = ion_flags & ION_FLAG_CACHED;
+
 	switch (heap_mask) {
 		case EXYNOS_ION_HEAP_SENSOR_DIRECT_MASK:
 			return kDmabufSensorDirectHeapName;
@@ -264,24 +246,34 @@ static std::string select_dmabuf_heap(unsigned int heap_mask)
 			return kDmabufFaceauthPrevHeapName;
 		case EXYNOS_ION_HEAP_FA_MODEL_MASK:
 			return kDmabufFaceauthModelHeapName;
+		case EXYNOS_ION_HEAP_VIDEO_SCALER_MASK:
+			return kDmabufVscalerSecureHeapName;
 		case EXYNOS_ION_HEAP_VIDEO_FRAME_MASK:
 			return kDmabufVframeSecureHeapName;
 		case EXYNOS_ION_HEAP_VIDEO_STREAM_MASK:
 			return kDmabufVstreamSecureHeapName;
+		case EXYNOS_ION_HEAP_SYSTEM_MASK:
+			return cached ? kDmabufSystemHeapName : kDmabufSystemUncachedHeapName;
 		default:
 			return {};
 	}
 }
 
-int ion_device::alloc_from_dmabuf_heap(const std::string& heap_name, size_t size,
-				       unsigned int flags, const std::string& buffer_name)
+int ion_device::alloc_from_dmabuf_heap(uint64_t usage, size_t size, unsigned int flags, const std::string& buffer_name)
 {
-	ATRACE_NAME(("alloc_from_dmabuf_heap " +  heap_name).c_str());
-	if (!buffer_allocator)
-	{
-		return -1;
+	ATRACE_CALL();
+	if (size == 0) { return -1; }
+	if (!buffer_allocator) { return -1; }
+
+	unsigned int heap_mask = select_heap_mask(usage);
+
+	auto heap_name = select_dmabuf_heap(heap_mask, flags);
+	if (heap_name.empty()) {
+			MALI_GRALLOC_LOGW("No heap found for usage: %s (0x%" PRIx64 ")", describe_usage(usage).c_str(), usage);
+			return -EINVAL;
 	}
 
+	ATRACE_NAME(("alloc_from_dmabuf_heap " +  heap_name).c_str());
 	int shared_fd = buffer_allocator->Alloc(heap_name, size, flags);
 	if (shared_fd < 0)
 	{
@@ -292,30 +284,6 @@ int ion_device::alloc_from_dmabuf_heap(const std::string& heap_name, size_t size
 		if (buffer_allocator->DmabufSetName(shared_fd, buffer_name)) {
 			ALOGW("Unable to set buffer name %s: %s", buffer_name.c_str(), strerror(errno));
 		}
-	}
-
-	return shared_fd;
-}
-
-int ion_device::alloc_from_ion_heap(uint64_t usage, size_t size, unsigned int flags, const std::string& buffer_name)
-{
-	ATRACE_CALL();
-	if (size == 0)
-	{
-		return -1;
-	}
-
-	unsigned int heap_mask = select_heap_mask(usage);
-
-	int shared_fd;
-	auto dmabuf_heap_name = select_dmabuf_heap(heap_mask);
-	if (!dmabuf_heap_name.empty())
-	{
-		shared_fd = alloc_from_dmabuf_heap(dmabuf_heap_name, size, flags, buffer_name);
-	}
-	else
-	{
-		shared_fd = exynos_ion_alloc(0, size, heap_mask, flags);
 	}
 
 	return shared_fd;
@@ -470,7 +438,7 @@ int mali_gralloc_ion_allocate_attr(private_handle_t *hnd)
 
 	ion_flags = ION_FLAG_CACHED;
 
-	hnd->fds[idx] = dev->alloc_from_ion_heap(usage, hnd->attr_size, ion_flags);
+	hnd->fds[idx] = dev->alloc_from_dmabuf_heap(usage, hnd->attr_size, ion_flags);
 	if (hnd->fds[idx] < 0)
 	{
 		MALI_GRALLOC_LOGE("ion_alloc failed");
@@ -525,7 +493,7 @@ int mali_gralloc_ion_allocate(const gralloc_buffer_descriptor_t *descriptors,
 			if (ion_fd >= 0 && fidx == 0) {
 				fds[fidx] = ion_fd;
 			} else {
-				fds[fidx] = dev->alloc_from_ion_heap(usage, bufDescriptor->alloc_sizes[fidx], ion_flags,
+				fds[fidx] = dev->alloc_from_dmabuf_heap(usage, bufDescriptor->alloc_sizes[fidx], ion_flags,
 								     bufDescriptor->name);
 			}
 			if (fds[fidx] < 0)
