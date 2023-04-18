@@ -154,7 +154,7 @@ typedef struct _ExynosVideoMeta {
     ExynosVideoCrop crop;
 } ExynosVideoMeta;
 
-int Exynos_parsing_user_data_registered_itu_t_t35(ExynosHdrDynamicInfo *dest, void *src);
+int Exynos_parsing_user_data_registered_itu_t_t35(ExynosHdrDynamicInfo *dest, void *src, int size);
 int Exynos_dynamic_meta_to_itu_t_t35(ExynosHdrDynamicInfo *src, char *dst);
 
 #ifdef __cplusplus
