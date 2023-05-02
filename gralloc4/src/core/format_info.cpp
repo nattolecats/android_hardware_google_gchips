@@ -128,7 +128,7 @@ const format_ip_support_t formats_ip_support[] = {
 	/* BEGIN ALIGNED SECTION */
 	/* TODO(b/189467474) AFBC disabled on the GPU for RGB_565 due to color swap in Vulkan */
 	{ .id = MALI_GRALLOC_FORMAT_INTERNAL_RGB_565,             .cpu_rd = F_LIN,  .cpu_wr = F_LIN,  .gpu_rd = F_LIN,        .gpu_wr = F_LIN,        .dpu_rd = F_LIN|F_AFBC, .dpu_wr = F_NONE, .dpu_aeu_wr = F_AFBC, .vpu_rd = F_NONE, .vpu_wr = F_NONE, .cam_wr = F_NONE,  },
-	{ .id = MALI_GRALLOC_FORMAT_INTERNAL_RGB_888,             .cpu_rd = F_LIN,  .cpu_wr = F_LIN,  .gpu_rd = F_LIN|F_AFBC, .gpu_wr = F_LIN|F_AFBC, .dpu_rd = F_LIN|F_AFBC, .dpu_wr = F_LIN,  .dpu_aeu_wr = F_AFBC, .vpu_rd = F_NONE, .vpu_wr = F_NONE, .cam_wr = F_NONE,  },
+	{ .id = MALI_GRALLOC_FORMAT_INTERNAL_RGB_888,             .cpu_rd = F_LIN,  .cpu_wr = F_LIN,  .gpu_rd = F_LIN|F_AFBC, .gpu_wr = F_LIN|F_AFBC, .dpu_rd = F_LIN|F_AFBC, .dpu_wr = F_LIN,  .dpu_aeu_wr = F_AFBC, .vpu_rd = F_NONE, .vpu_wr = F_NONE, .cam_wr = F_LIN,   },
 	{ .id = MALI_GRALLOC_FORMAT_INTERNAL_RGBA_8888,           .cpu_rd = F_LIN,  .cpu_wr = F_LIN,  .gpu_rd = F_LIN|F_AFBC, .gpu_wr = F_LIN|F_AFBC, .dpu_rd = F_LIN|F_AFBC, .dpu_wr = F_LIN,  .dpu_aeu_wr = F_AFBC, .vpu_rd = F_LIN,  .vpu_wr = F_NONE, .cam_wr = F_LIN,   },
 	{ .id = MALI_GRALLOC_FORMAT_INTERNAL_BGRA_8888,           .cpu_rd = F_LIN,  .cpu_wr = F_LIN,  .gpu_rd = F_LIN,        .gpu_wr = F_LIN,        .dpu_rd = F_LIN,        .dpu_wr = F_LIN,  .dpu_aeu_wr = F_NONE, .vpu_rd = F_LIN,  .vpu_wr = F_NONE, .cam_wr = F_NONE,  },
 	{ .id = MALI_GRALLOC_FORMAT_INTERNAL_RGBX_8888,           .cpu_rd = F_LIN,  .cpu_wr = F_LIN,  .gpu_rd = F_LIN|F_AFBC, .gpu_wr = F_LIN|F_AFBC, .dpu_rd = F_LIN|F_AFBC, .dpu_wr = F_LIN,  .dpu_aeu_wr = F_NONE, .vpu_rd = F_NONE, .vpu_wr = F_NONE, .cam_wr = F_NONE,  },
