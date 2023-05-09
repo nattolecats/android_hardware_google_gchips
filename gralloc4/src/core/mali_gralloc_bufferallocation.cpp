@@ -49,6 +49,7 @@
 
 /* IP-specific align values */
 #define GPU_BYTE_ALIGN_DEFAULT 64
+#define BIG_BYTE_ALIGN_DEFAULT 64
 #ifdef SOC_ZUMA
 #define CAMERA_RAW_BUFFER_BYTE_ALIGN 32
 #endif
@@ -621,6 +622,11 @@ static void calc_allocation_size(const int width,
 				hw_align = std::max(hw_align, static_cast<uint16_t>(CAMERA_RAW_BUFFER_BYTE_ALIGN));
 			}
 #endif
+
+			if (has_BIG_usage) {
+				assert(has_hw_usage);
+				hw_align = lcm(hw_align, static_cast<uint16_t>(BIG_BYTE_ALIGN_DEFAULT));
+			}
 
 			uint32_t cpu_align = 0;
 			if (has_cpu_usage && format.id != MALI_GRALLOC_FORMAT_INTERNAL_RAW10) {
