@@ -60,6 +60,8 @@ static const char kDmabufVframeSecureHeapName[] = "vframe-secure";
 static const char kDmabufVstreamSecureHeapName[] = "vstream-secure";
 static const char kDmabufVscalerSecureHeapName[] = "vscaler-secure";
 static const char kDmabufFramebufferSecureHeapName[] = "framebuffer-secure";
+static const char kDmabufGcmaCameraHeapName[] = "gcma_camera";
+static const char kDmabufGcmaCameraUncachedHeapName[] = "gcma_camera-uncached";
 
 BufferAllocator& get_allocator() {
 		static BufferAllocator allocator;
@@ -116,7 +118,7 @@ std::string select_dmabuf_heap(uint64_t usage)
 		},
 	}};
 
-	static const std::array<HeapSpecifier, 6> inexact_usage_heaps =
+	static const std::array<HeapSpecifier, 8> inexact_usage_heaps =
 	{{
 		// If GPU, use vframe-secure
 		{
@@ -146,6 +148,18 @@ std::string select_dmabuf_heap(uint64_t usage)
 			kDmabufSensorDirectHeapName
 		},
 
+		// Camera GCMA heap
+		{
+			GRALLOC_USAGE_HW_CAMERA_WRITE,
+			find_first_available_heap({kDmabufGcmaCameraUncachedHeapName, kDmabufSystemUncachedHeapName})
+		},
+
+		// Camera GCMA heap
+		{
+			GRALLOC_USAGE_HW_CAMERA_READ,
+			find_first_available_heap({kDmabufGcmaCameraUncachedHeapName, kDmabufSystemUncachedHeapName})
+		},
+
 		// Catchall to system
 		{
 			0,
@@ -165,7 +179,10 @@ std::string select_dmabuf_heap(uint64_t usage)
 	{
 		if ((usage & heap.usage_bits) == heap.usage_bits)
 		{
-			if (heap.name == kDmabufSystemUncachedHeapName &&
+			if (heap.name == kDmabufGcmaCameraUncachedHeapName &&
+			    ((usage & GRALLOC_USAGE_SW_READ_MASK) == GRALLOC_USAGE_SW_READ_OFTEN))
+				return kDmabufGcmaCameraHeapName;
+			else if (heap.name == kDmabufSystemUncachedHeapName &&
 			    ((usage & GRALLOC_USAGE_SW_READ_MASK) == GRALLOC_USAGE_SW_READ_OFTEN))
 				return kDmabufSystemHeapName;
 
