@@ -86,7 +86,7 @@ std::string select_dmabuf_heap(uint64_t usage)
 		std::string   name;
 	};
 
-	static const std::array<HeapSpecifier, 6> exact_usage_heaps =
+	static const std::array<HeapSpecifier, 7> exact_usage_heaps =
 	{{
 		// Faceauth heaps
 		{ // isp_image_heap
@@ -114,6 +114,12 @@ std::string select_dmabuf_heap(uint64_t usage)
 		{
 			GRALLOC_USAGE_PROTECTED | GRALLOC_USAGE_HW_TEXTURE | GRALLOC_USAGE_HW_RENDER |
 			GRALLOC_USAGE_HW_COMPOSER | GRALLOC_USAGE_HW_FB,
+			find_first_available_heap({kDmabufFramebufferSecureHeapName, kDmabufVframeSecureHeapName})
+		},
+
+		{
+			GRALLOC_USAGE_PROTECTED | GRALLOC_USAGE_HW_TEXTURE | GRALLOC_USAGE_HW_RENDER |
+			GRALLOC_USAGE_HW_COMPOSER,
 			find_first_available_heap({kDmabufFramebufferSecureHeapName, kDmabufVframeSecureHeapName})
 		},
 	}};
