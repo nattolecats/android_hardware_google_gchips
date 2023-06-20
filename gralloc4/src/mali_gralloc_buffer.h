@@ -286,6 +286,8 @@ struct private_handle_t
 
 		if (_fds)
 			memcpy(fds, _fds, sizeof(fds));
+		else
+			memset(fds, -1, sizeof(fds));
 
 		if (_alloc_sizes)
 			memcpy(alloc_sizes, _alloc_sizes, sizeof(alloc_sizes));
