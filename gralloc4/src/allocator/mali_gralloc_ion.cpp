@@ -48,7 +48,6 @@
 #include "mali_gralloc_ion.h"
 
 #include <array>
-#include <cassert>
 #include <string>
 
 static const char kDmabufSensorDirectHeapName[] = "sensor_direct_heap";
@@ -370,57 +369,61 @@ int mali_gralloc_ion_allocate(const gralloc_buffer_descriptor_t *descriptors,
 	unsigned int priv_heap_flag = 0;
 	uint64_t usage;
 	uint32_t i;
+	int fds[MAX_FDS];
+	std::fill(fds, fds + MAX_FDS, -1);
 
 	for (i = 0; i < numDescriptors; i++)
 	{
-		buffer_descriptor_t *bufDescriptor = reinterpret_cast<buffer_descriptor_t *>(descriptors[i]);
-		assert(bufDescriptor);
-		assert(bufDescriptor->fd_count >= 0);
-		assert(bufDescriptor->fd_count <= MAX_FDS);
+		buffer_descriptor_t *bufDescriptor = (buffer_descriptor_t *)(descriptors[i]);
+		usage = bufDescriptor->consumer_usage | bufDescriptor->producer_usage;
 
-		auto hnd = new private_handle_t(
+		for (int fidx = 0; fidx < bufDescriptor->fd_count; fidx++)
+		{
+			if (ion_fd >= 0 && fidx == 0) {
+				fds[fidx] = ion_fd;
+			} else {
+				fds[fidx] = alloc_from_dmabuf_heap(usage, bufDescriptor->alloc_sizes[fidx], bufDescriptor->name);
+			}
+			if (fds[fidx] < 0)
+			{
+				MALI_GRALLOC_LOGE("ion_alloc failed");
+
+				for (int cidx = 0; cidx < fidx; cidx++)
+				{
+					close(fds[cidx]);
+				}
+
+				/* need to free already allocated memory. not just this one */
+				mali_gralloc_ion_free_internal(pHandle, numDescriptors);
+
+				return -1;
+			}
+		}
+
+		private_handle_t *hnd = new private_handle_t(
 		    priv_heap_flag,
 		    bufDescriptor->alloc_sizes,
 		    bufDescriptor->consumer_usage, bufDescriptor->producer_usage,
-		    nullptr, bufDescriptor->fd_count,
+		    fds, bufDescriptor->fd_count,
 		    bufDescriptor->hal_format, bufDescriptor->alloc_format,
 		    bufDescriptor->width, bufDescriptor->height, bufDescriptor->pixel_stride,
 		    bufDescriptor->layer_count, bufDescriptor->plane_info);
 
-		/* Reset the number of valid filedescriptors, we will increment
-		 * it each time a valid fd is added, so we can rely on the
-		 * cleanup functions to close open fds. */
-		hnd->set_numfds(0);
-
-		if (nullptr == hnd)
+		if (NULL == hnd)
 		{
 			MALI_GRALLOC_LOGE("Private handle could not be created for descriptor:%d in non-shared usecase", i);
-			mali_gralloc_ion_free_internal(pHandle, i);
+
+			/* Close the obtained shared file descriptor for the current handle */
+			for (int j = 0; j < bufDescriptor->fd_count; j++)
+			{
+				close(fds[j]);
+			}
+
+			mali_gralloc_ion_free_internal(pHandle, numDescriptors);
 			return -1;
 		}
 
 		pHandle[i] = hnd;
-		usage = bufDescriptor->consumer_usage | bufDescriptor->producer_usage;
-
-		for (uint32_t fidx = 0; fidx < bufDescriptor->fd_count; fidx++)
-		{
-			int& fd = hnd->fds[fidx];
-
-			if (ion_fd >= 0 && fidx == 0) {
-				fd = ion_fd;
-			} else {
-				fd = alloc_from_dmabuf_heap(usage, bufDescriptor->alloc_sizes[fidx], bufDescriptor->name);
-			}
-
-			if (fd < 0)
-			{
-				MALI_GRALLOC_LOGE("ion_alloc failed for fds[%u] = %d", fidx, fd);
-				mali_gralloc_ion_free_internal(pHandle, i + 1);
-				return -1;
-			}
-
-			hnd->incr_numfds(1);
-		}
 	}
 
 #if defined(GRALLOC_INIT_AFBC) && (GRALLOC_INIT_AFBC == 1)
@@ -428,8 +431,8 @@ int mali_gralloc_ion_allocate(const gralloc_buffer_descriptor_t *descriptors,
 	unsigned char *cpu_ptr = NULL;
 	for (i = 0; i < numDescriptors; i++)
 	{
-		buffer_descriptor_t *bufDescriptor = reinterpret_cast<buffer_descriptor_t *>(descriptors[i]);
-		const private_handle_t *hnd = static_cast<const private_handle_t *>(pHandle[i]);
+		buffer_descriptor_t *bufDescriptor = (buffer_descriptor_t *)(descriptors[i]);
+		private_handle_t *hnd = (private_handle_t *)(pHandle[i]);
 
 		usage = bufDescriptor->consumer_usage | bufDescriptor->producer_usage;
 
@@ -456,7 +459,6 @@ int mali_gralloc_ion_allocate(const gralloc_buffer_descriptor_t *descriptors,
 				ATRACE_NAME("data init");
 				/* For separated plane YUV, there is a header to initialise per plane. */
 				const plane_info_t *plane_info = bufDescriptor->plane_info;
-				assert(plane_info);
 				const bool is_multi_plane = hnd->is_multi_plane();
 				for (int i = 0; i < MAX_PLANES && (i == 0 || plane_info[i].byte_stride != 0); i++)
 				{
