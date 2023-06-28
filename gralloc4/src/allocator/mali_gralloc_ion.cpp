@@ -210,7 +210,9 @@ int alloc_from_dmabuf_heap(uint64_t usage, size_t size, const std::string& buffe
 			return -EINVAL;
 	}
 
-	ATRACE_NAME(("alloc_from_dmabuf_heap " +  heap_name).c_str());
+	std::stringstream tag;
+	tag << "heap: " << heap_name << ", bytes: " << size;
+	ATRACE_NAME(tag.str().c_str());
 	int shared_fd = get_allocator().Alloc(heap_name, size, 0);
 	if (shared_fd < 0)
 	{
