@@ -57,7 +57,7 @@ std::atomic<uint16_t> next_idx = 0;
 
 // There is no atomic rounding off for atomics so next_idx can overflow. allocated_buffers should be
 // a power of 2.
-std::array<BufferDetails, 8192> allocated_buffers;
+std::array<BufferDetails, 2048> allocated_buffers;
 std::shared_timed_mutex allocated_buffers_mutex;
 static_assert((allocated_buffers.size() & (allocated_buffers.size() - 1)) == 0);
 
