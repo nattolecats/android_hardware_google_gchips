@@ -40,6 +40,7 @@ cc_library_shared {
 	vendor: true,
 	defaults: [
 		"arm_gralloc_defaults",
+		"android.hardware.graphics.common-ndk_shared",
 	],
 	srcs: [
 		"libGralloc4Wrapper/wrapper.cpp",
@@ -69,7 +70,6 @@ cc_library_shared {
 		"libhidltransport",
 		"libnativewindow",
 		"android.hardware.graphics.common@1.2",
-		"android.hardware.graphics.common-V4-ndk",
 		"android.hardware.graphics.mapper@4.0",
 		"libdmabufheap",
 		"libgralloctypes",

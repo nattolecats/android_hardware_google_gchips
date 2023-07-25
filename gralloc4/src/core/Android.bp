@@ -39,6 +39,7 @@ arm_gralloc_core_cc_defaults {
 	name: "arm_gralloc_core_defaults",
 	defaults: [
 		"arm_gralloc_defaults",
+		"android.hardware.graphics.common-ndk_shared",
 	],
 	soong_config_variables: {
 		gralloc_ion_sync_on_lock: {
@@ -69,7 +70,6 @@ arm_gralloc_core_cc_defaults {
 		"libcutils",
 		"libutils",
 		"android.hardware.graphics.common@1.2",
-		"android.hardware.graphics.common-V4-ndk",
 	],
 	target: {
 		android: {
