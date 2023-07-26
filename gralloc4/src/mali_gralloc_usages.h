@@ -112,6 +112,9 @@ typedef enum
 #define GRALLOC_USAGE_GPU_DATA_BUFFER static_cast<uint64_t>(hidl_common::BufferUsage::GPU_DATA_BUFFER)
 #define GRALLOC_USAGE_FRONT_BUFFER static_cast<uint64_t>(aidl_common::BufferUsage::FRONT_BUFFER)
 
+#define UNSUPPORTED_MALI_GRALLOC_USAGE_CUBE_MAP static_cast<uint64_t>(aidl_common::BufferUsage::GPU_CUBE_MAP)
+#define UNSUPPORTED_MALI_GRALLOC_USAGE_MIPMAP_COMPLETE static_cast<uint64_t>(aidl_common::BufferUsage::GPU_MIPMAP_COMPLETE)
+
 
 /* Originally (Gralloc 0.x), Android did not provide an explicit DECODER usage. This was rectified in Android N-MR1/7.1
  * when Gralloc 1.0 defined GRALLOC1_PRODUCER_USAGE_VIDEO_DECODER. However, libstagefright continues

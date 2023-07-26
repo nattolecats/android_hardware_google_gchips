@@ -475,9 +475,17 @@ static void update_yv12_stride(int8_t plane,
  * that point, the allocation is not aborted, just a log is printed to ALOGE
  * (matched against `VALID_USAGE`). These should be aligned.
  */
-static bool log_deprecated_usage_flags(uint64_t usage) {
+static bool log_obsolete_usage_flags(uint64_t usage) {
 	if (usage & DEPRECATED_MALI_GRALLOC_USAGE_FRONTBUFFER) {
 		MALI_GRALLOC_LOGW("Using deprecated FRONTBUFFER usage bit, please upgrade to BufferUsage::FRONT_BUFFER");
+		return true;
+	}
+	if (usage & UNSUPPORTED_MALI_GRALLOC_USAGE_CUBE_MAP) {
+		MALI_GRALLOC_LOGW("BufferUsage::GPU_CUBE_MAP is unsupported");
+		return true;
+	}
+	if (usage & UNSUPPORTED_MALI_GRALLOC_USAGE_MIPMAP_COMPLETE) {
+		MALI_GRALLOC_LOGW("BufferUsage::GPU_MIPMAP_COMPLETE is unsupported");
 		return true;
 	}
 
@@ -992,6 +1000,10 @@ int mali_gralloc_derive_format_and_size(buffer_descriptor_t * const bufDescripto
 	int alloc_height = bufDescriptor->height;
 	uint64_t usage = bufDescriptor->producer_usage | bufDescriptor->consumer_usage;
 
+	if (log_obsolete_usage_flags(usage)) {
+		return -EINVAL;
+	}
+
 	/*
 	* Select optimal internal pixel format based upon
 	* usage and requested format.
@@ -1155,11 +1167,6 @@ int mali_gralloc_buffer_allocate(const gralloc_buffer_descriptor_t *descriptors,
 			usage = update_usage_for_BIG(usage);
 			bufDescriptor->producer_usage = usage;
 			bufDescriptor->consumer_usage = usage;
-		}
-
-		if (log_deprecated_usage_flags(usage))
-		{
-			return -EINVAL;
 		}
 
 		/* Derive the buffer size from descriptor parameters */
