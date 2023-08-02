@@ -22,7 +22,6 @@ package {
 cc_library_shared {
 	name: "libvendorgraphicbuffer",
 	srcs: [
-		"gralloc4/vendor_graphicbuffer_mapper.cpp",
 		"gralloc4/vendor_graphicbuffer_meta.cpp",
 	],
 	shared_libs: [
