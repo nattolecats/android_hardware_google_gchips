@@ -155,24 +155,7 @@ public:
 	static int free_buffer(buffer_handle_t);
 };
 
-
-/* Mapper extension class to allow locking with 64-bit usages */
-class VendorGraphicBufferMapper : public android::GraphicBufferMapper
-{
-public:
-	static inline VendorGraphicBufferMapper& get()
-	{
-		return static_cast<VendorGraphicBufferMapper&>(getInstance());
-	}
-
-	android::status_t lock64(buffer_handle_t handle, uint64_t usage, const android::Rect& bounds,
-		void** vaddr, int32_t* outBytesPerPixel = nullptr,
-		int32_t* outBytesPerStride = nullptr);
-
-	android::status_t lockYCbCr64(buffer_handle_t handle,
-		uint64_t usage, const android::Rect& bounds, android_ycbcr *ycbcr);
-};
-
+typedef class android::GraphicBufferMapper VendorGraphicBufferMapper;
 typedef class android::GraphicBufferAllocator VendorGraphicBufferAllocator;
 
 } /* namespace graphics */
