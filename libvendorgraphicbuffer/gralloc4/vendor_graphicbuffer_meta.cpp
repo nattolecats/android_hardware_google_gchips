@@ -69,19 +69,9 @@ android::sp<IMapper> get_mapper() {
 	return mapper;
 }
 
-int VendorGraphicBufferMeta::get_video_metadata_fd(buffer_handle_t hnd)
+int VendorGraphicBufferMeta::get_video_metadata_fd(buffer_handle_t /*hnd*/)
 {
-	const auto *gralloc_hnd = convertNativeHandleToPrivateHandle(hnd);
-
-	if (!gralloc_hnd)
-		return -EINVAL;
-
-	uint64_t usage = gralloc_hnd->producer_usage | gralloc_hnd->consumer_usage;
-
-	if (usage & VendorGraphicBufferUsage::VIDEO_PRIVATE_DATA)
-		return gralloc_hnd->get_share_attr_fd();
-	else
-		return -EINVAL;
+	__builtin_trap();
 }
 
 int VendorGraphicBufferMeta::get_dataspace(buffer_handle_t hnd)
