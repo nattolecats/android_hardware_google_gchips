@@ -18,6 +18,7 @@
 
 #include "SharedMetadata.h"
 #include "mali_gralloc_log.h"
+#include "mali_gralloc_usages.h"
 //#include <VendorVideoAPI.h>
 
 namespace arm
@@ -160,6 +161,17 @@ android::status_t set_smpte2094_40(const private_handle_t *hnd, const std::optio
 	return android::OK;
 }
 
+void* get_video_hdr(const private_handle_t *hnd) {
+	auto *metadata = reinterpret_cast<shared_metadata *>(hnd->attr_base);
+	return &(metadata->video_private_data);
+}
+
+void* get_video_roiinfo(const private_handle_t *hnd) {
+	if (!(hnd->get_usage() & GRALLOC_USAGE_ROIINFO))
+		return nullptr;
+
+	return static_cast<char*>(hnd->attr_base) + sizeof(shared_metadata) + hnd->reserved_region_size;
+}
 } // namespace common
 } // namespace mapper
 } // namespace arm
