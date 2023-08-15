@@ -465,31 +465,64 @@ static void update_yv12_stride(int8_t plane,
 #endif
 
 /*
- * Logs and returns true if deprecated usage bits are found
+ * Logs and returns false if deprecated usage bits are found
  *
  * At times, framework introduces new usage flags which are identical to what
  * vendor has been using internally. This method logs those bits and returns
  * true if there is any deprecated usage bit.
- *
- * TODO(layog@): This check is also performed again during format deduction. At
- * that point, the allocation is not aborted, just a log is printed to ALOGE
- * (matched against `VALID_USAGE`). These should be aligned.
  */
 static bool log_obsolete_usage_flags(uint64_t usage) {
 	if (usage & DEPRECATED_MALI_GRALLOC_USAGE_FRONTBUFFER) {
 		MALI_GRALLOC_LOGW("Using deprecated FRONTBUFFER usage bit, please upgrade to BufferUsage::FRONT_BUFFER");
-		return true;
+		return false;
 	}
 	if (usage & UNSUPPORTED_MALI_GRALLOC_USAGE_CUBE_MAP) {
 		MALI_GRALLOC_LOGW("BufferUsage::GPU_CUBE_MAP is unsupported");
-		return true;
+		return false;
 	}
 	if (usage & UNSUPPORTED_MALI_GRALLOC_USAGE_MIPMAP_COMPLETE) {
 		MALI_GRALLOC_LOGW("BufferUsage::GPU_MIPMAP_COMPLETE is unsupported");
-		return true;
+		return false;
 	}
 
-	return false;
+	return true;
+}
+
+static bool validate_size(uint32_t layer_count, uint32_t width, uint32_t height) {
+	// The max size of an image can be from camera (50 Megapixels) and considering the max
+	// depth of 4 bytes per pixel, we get an image of size 200MB.
+	// We can keep twice the margin for a max size of 400MB.
+	uint64_t overflow_limit = 400 * (1 << 20);
+
+	// Maximum 4 bytes per pixel buffers are supported (RGBA). This does not take care of
+	// alignment, but 400MB is already very generous, so there should not be an issue.
+	overflow_limit /= 4;
+	overflow_limit /= layer_count;
+
+	if (width > overflow_limit) {
+		MALI_GRALLOC_LOGE("Parameters layer: %" PRIu32 ", width: %" PRIu32 ", height: %" PRIu32 " are too big", layer_count, width, height);
+		return false;
+	}
+	overflow_limit /= width;
+
+	if (height > overflow_limit) {
+		MALI_GRALLOC_LOGE("Parameters layer: %" PRIu32 ", width: %" PRIu32 ", height: %" PRIu32 " are too big", layer_count, width, height);
+		return false;
+	}
+
+	return true;
+}
+
+static bool validate_descriptor(buffer_descriptor_t * const bufDescriptor) {
+	if (!log_obsolete_usage_flags(bufDescriptor->producer_usage | bufDescriptor->consumer_usage)) {
+		return false;
+	}
+
+	if (!validate_size(bufDescriptor->layer_count, bufDescriptor->width, bufDescriptor->height)) {
+		return false;
+	}
+
+	return true;
 }
 
 /*
@@ -1000,7 +1033,7 @@ int mali_gralloc_derive_format_and_size(buffer_descriptor_t * const bufDescripto
 	int alloc_height = bufDescriptor->height;
 	uint64_t usage = bufDescriptor->producer_usage | bufDescriptor->consumer_usage;
 
-	if (log_obsolete_usage_flags(usage)) {
+	if (!validate_descriptor(bufDescriptor)) {
 		return -EINVAL;
 	}
 
