@@ -195,15 +195,6 @@ int freeImportedHandle(void *handle)
 
     const private_handle_t *hnd = static_cast<private_handle_t *>(handle);
 
-    struct UnmapWork { void *base; size_t alloc_size; };
-    std::vector<UnmapWork> work(hnd->fd_count);
-
-    for (size_t i = 0; i < hnd->fd_count; ++i)
-    {
-        work[i].base = reinterpret_cast<void*>(hnd->bases[i]);
-        work[i].alloc_size = hnd->alloc_sizes[i];
-    }
-
     static android::sp<IMapper> mapper = IMapper::getService();
     if (!mapper)
     {
@@ -215,20 +206,6 @@ int freeImportedHandle(void *handle)
     {
         ALOGE("libGralloc4Wrapper: %s couldn't freeBuffer(%p\n", __func__, handle);
         return -1;
-    }
-
-    {
-        bool unmapFailed = false;
-        for (const UnmapWork &w : work)
-        {
-            if (!w.base) { continue; }
-            if (int ret = munmap(w.base, w.alloc_size); ret)
-            {
-                ALOGE("libGralloc4Wrapper: %s couldn't unmap address %p (size %zu): %s", __func__, w.base, w.alloc_size, strerror(ret));
-                unmapFailed = true;
-            }
-        }
-        if (unmapFailed) { return -1; }
     }
 
     return 0;
