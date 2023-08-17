@@ -245,14 +245,6 @@ static Error unlockBuffer(buffer_handle_t bufferHandle,
 	}
 
 	auto private_handle = private_handle_t::dynamicCast(bufferHandle);
-#if 0
-	if (!private_handle->cpu_write && !private_handle->cpu_read)
-	{
-		MALI_GRALLOC_LOGW("Attempt to call unlock*() on an unlocked buffer (%p)", bufferHandle);
-
-		/* TODO: handle simulatneous locks differently. May be keep a global lock count per buffer? */
-	}
-#endif
 
 	const int result = mali_gralloc_unlock(bufferHandle);
 	if (result)

@@ -221,9 +221,16 @@ int mali_gralloc_lock(buffer_handle_t buffer,
 			return -EINVAL;
 		}
 
-		mali_gralloc_reference_map(buffer);
+		if (mali_gralloc_reference_map(buffer) != 0) {
+			return -EINVAL;
+		}
 
-		*vaddr = (void *)hnd->bases[0];
+		std::optional<void*> buf_addr = mali_gralloc_reference_get_buf_addr(buffer);
+		if (!buf_addr.has_value()) {
+			MALI_GRALLOC_LOGE("BUG: Invalid buffer address on a just mapped buffer");
+			return -EINVAL;
+		}
+		*vaddr = buf_addr.value();
 
 		buffer_sync(hnd, get_tx_direction(usage));
 	}

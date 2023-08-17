@@ -35,7 +35,7 @@ private:
     // should become the only place where address mapping is maintained and can be
     // queried from.
     struct MappedData {
-        void *bases[MAX_BUFFER_FDS] = {};
+        std::array<void *, MAX_BUFFER_FDS> bases;
         size_t alloc_sizes[MAX_BUFFER_FDS] = {};
         uint64_t ref_count = 0;
     };
@@ -94,7 +94,8 @@ private:
     }
 
     int map_locked(buffer_handle_t handle) REQUIRES(lock) {
-        private_handle_t *hnd = (private_handle_t *)handle;
+        private_handle_t *hnd =
+                reinterpret_cast<private_handle_t *>(const_cast<native_handle *>(handle));
         auto it = buffer_map.find(hnd);
 
         if (it == buffer_map.end()) {
@@ -116,13 +117,12 @@ private:
             return -EINVAL;
         }
 
-        int error = mali_gralloc_ion_map(hnd);
-        if (error != 0) {
-            return error;
+        data.bases = mali_gralloc_ion_map(hnd);
+        if (data.bases[0] == nullptr) {
+            return -EINVAL;
         }
 
         for (auto i = 0; i < MAX_BUFFER_FDS; i++) {
-            data.bases[i] = reinterpret_cast<void *>(hnd->bases[i]);
             data.alloc_sizes[i] = hnd->alloc_sizes[i];
         }
 
@@ -135,7 +135,7 @@ private:
             return -EINVAL;
         }
 
-        const auto *hnd = (private_handle_t *)handle;
+        const auto *hnd = reinterpret_cast<private_handle_t *>(const_cast<native_handle *>(handle));
         auto it = buffer_map.find(hnd);
         if (it == buffer_map.end()) {
             MALI_GRALLOC_LOGE("Reference unimported buffer %p, returning error", handle);
@@ -145,8 +145,7 @@ private:
         auto &data = *(it->second.get());
         if (data.bases[0] != nullptr) {
             for (auto i = 0; i < MAX_BUFFER_FDS; i++) {
-                if (data.bases[i] != reinterpret_cast<void *>(hnd->bases[i]) ||
-                    data.alloc_sizes[i] != hnd->alloc_sizes[i]) {
+                if (data.alloc_sizes[i] != hnd->alloc_sizes[i]) {
                     MALI_GRALLOC_LOGE(
                             "Validation failed: Buffer attributes inconsistent with mapper");
                     return -EINVAL;
@@ -154,7 +153,7 @@ private:
             }
         } else {
             for (auto i = 0; i < MAX_BUFFER_FDS; i++) {
-                if (hnd->bases[i] != 0 || data.bases[i] != nullptr) {
+                if (data.bases[i] != nullptr) {
                     MALI_GRALLOC_LOGE("Validation failed: Expected nullptr for unmapped buffer");
                     return -EINVAL;
                 }
@@ -177,7 +176,8 @@ public:
         }
         std::lock_guard<std::mutex> _l(lock);
 
-        private_handle_t *hnd = (private_handle_t *)handle;
+        private_handle_t *hnd =
+                reinterpret_cast<private_handle_t *>(const_cast<native_handle *>(handle));
 
         auto it = buffer_map.find(hnd);
         if (it == buffer_map.end()) {
@@ -188,10 +188,6 @@ public:
             if (!success) {
                 MALI_GRALLOC_LOGE("Failed to create buffer data mapping");
                 return -EINVAL;
-            }
-
-            for (int i = 0; i < MAX_BUFFER_FDS; i++) {
-                hnd->bases[i] = 0;
             }
         } else if (it->second->ref_count == 0) {
             MALI_GRALLOC_LOGE("BUG: Import counter of an imported buffer is 0, expect errors");
@@ -224,7 +220,8 @@ public:
             return error;
         }
 
-        private_handle_t *hnd = (private_handle_t *)handle;
+        private_handle_t *hnd =
+                reinterpret_cast<private_handle_t *>(const_cast<native_handle *>(handle));
         auto it = buffer_map.find(hnd);
         if (it == buffer_map.end()) {
             MALI_GRALLOC_LOGE("Trying to release a non-imported buffer");
@@ -240,7 +237,7 @@ public:
         data.ref_count--;
         if (data.ref_count == 0) {
             if (data.bases[0] != nullptr) {
-                mali_gralloc_ion_unmap(hnd);
+                mali_gralloc_ion_unmap(hnd, data.bases);
             }
 
             /* TODO: Make this unmapping of shared meta fd into a function? */
@@ -258,6 +255,31 @@ public:
         std::lock_guard<std::mutex> _l(lock);
         return validate_locked(handle);
     }
+
+    std::optional<void *> get_buf_addr(buffer_handle_t handle) {
+        std::lock_guard<std::mutex> _l(lock);
+
+        auto error = validate_locked(handle);
+        if (error != 0) {
+            return {};
+        }
+
+        private_handle_t *hnd =
+                reinterpret_cast<private_handle_t *>(const_cast<native_handle *>(handle));
+        auto it = buffer_map.find(hnd);
+        if (it == buffer_map.end()) {
+            MALI_GRALLOC_LOGE("BUG: Cannot find a validated buffer");
+            return {};
+        }
+
+        const auto &data = *(it->second.get());
+        if (data.bases[0] == nullptr) {
+            MALI_GRALLOC_LOGE("BUG: Called %s for an un-mapped buffer", __FUNCTION__);
+            return {};
+        }
+
+        return data.bases[0];
+    }
 };
 
 int mali_gralloc_reference_retain(buffer_handle_t handle) {
@@ -274,4 +296,8 @@ int mali_gralloc_reference_release(buffer_handle_t handle) {
 
 int mali_gralloc_reference_validate(buffer_handle_t handle) {
     return BufferManager::getInstance().validate(handle);
+}
+
+std::optional<void *> mali_gralloc_reference_get_buf_addr(buffer_handle_t handle) {
+    return BufferManager::getInstance().get_buf_addr(handle);
 }
