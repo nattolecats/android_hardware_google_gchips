@@ -5,7 +5,6 @@
 #include "core/format_info.h"
 #include "core/mali_gralloc_bufferdescriptor.h"
 #include "core/mali_gralloc_bufferallocation.h"
-#include "core/mali_gralloc_reference.h"
 #include "allocator/mali_gralloc_ion.h"
 #include "hidl_common/SharedMetadata.h"
 #include "gralloc_priv.h"
@@ -158,27 +157,32 @@ buffer_handle_t createNativeHandle(const Descriptor &descriptor) {
     }
 
     {
-        hnd->attr_base = mmap(nullptr, hnd->attr_size, PROT_READ | PROT_WRITE,
+        auto metadata_vaddr = mmap(nullptr, hnd->attr_size, PROT_READ | PROT_WRITE,
                 MAP_SHARED, hnd->get_share_attr_fd(), 0);
-        if (hnd->attr_base == MAP_FAILED) {
+        if (metadata_vaddr == MAP_FAILED) {
             ALOGE("mmap hnd->get_share_attr_fd() failed");
             mali_gralloc_buffer_free(tmp_buffer);
             return nullptr;
         }
 
-        memset(hnd->attr_base, 0, hnd->attr_size);
+        memset(metadata_vaddr, 0, hnd->attr_size);
 
-        arm::mapper::common::shared_metadata_init(hnd->attr_base, buffer_descriptor.name);
+        arm::mapper::common::shared_metadata_init(metadata_vaddr, buffer_descriptor.name);
 
         const uint32_t base_format = buffer_descriptor.alloc_format & MALI_GRALLOC_INTFMT_FMT_MASK;
         const uint64_t usage = buffer_descriptor.consumer_usage | buffer_descriptor.producer_usage;
         android_dataspace_t dataspace;
         get_format_dataspace(base_format, usage, hnd->width, hnd->height, &dataspace);
 
-        arm::mapper::common::set_dataspace(hnd, static_cast<arm::mapper::common::Dataspace>(dataspace));
+        {
+            using arm::mapper::common::aligned_optional;
+            using arm::mapper::common::Dataspace;
+            using arm::mapper::common::shared_metadata;
+            (static_cast<shared_metadata *>(metadata_vaddr))->dataspace =
+                    aligned_optional(static_cast<Dataspace>(dataspace));
+        }
 
-        munmap(hnd->attr_base, hnd->attr_size);
-        hnd->attr_base = 0;
+        munmap(metadata_vaddr, hnd->attr_size);
     }
 
     // TODO(modan@, handle all plane offsets)

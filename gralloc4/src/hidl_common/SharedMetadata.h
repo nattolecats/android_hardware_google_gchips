@@ -23,7 +23,6 @@
 #include <vector>
 #include "gralloctypes/Gralloc4.h"
 #include "mali_gralloc_buffer.h"
-#include "allocator/mali_gralloc_shared_memory.h"
 #include "core/mali_gralloc_bufferdescriptor.h"
 #include "gralloc_helper.h"
 

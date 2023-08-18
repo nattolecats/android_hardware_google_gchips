@@ -238,7 +238,6 @@ struct private_handle_t
 	int ion_handles[MAX_BUFFER_FDS];
 	uint64_t alloc_sizes[MAX_BUFFER_FDS];
 
-	void *attr_base __attribute__((aligned (8))) DEFAULT_INITIALIZER(nullptr);
 	off_t offset    __attribute__((aligned (8))) DEFAULT_INITIALIZER(0);
 
 	/* Size of the attribute shared region in bytes. */
