@@ -301,20 +301,8 @@ void mali_gralloc_ion_free(private_handle_t * const hnd)
 {
 	for (int i = 0; i < hnd->fd_count; i++)
 	{
-		void* mapped_addr = reinterpret_cast<void*>(hnd->bases[i]);
-
-		/* Buffer might be unregistered already so we need to assure we have a valid handle */
-		if (mapped_addr != nullptr)
-		{
-			if (munmap(mapped_addr, hnd->alloc_sizes[i]) != 0)
-			{
-				/* TODO: more detailed error logs */
-				MALI_GRALLOC_LOGE("Failed to munmap handle %p", hnd);
-			}
-		}
 		close(hnd->fds[i]);
 		hnd->fds[i] = -1;
-		hnd->bases[i] = 0;
 	}
 	delete hnd;
 }
@@ -482,15 +470,17 @@ int mali_gralloc_ion_allocate(const gralloc_buffer_descriptor_t *descriptors,
 	return 0;
 }
 
-int mali_gralloc_ion_map(private_handle_t *hnd)
+std::array<void*, MAX_BUFFER_FDS> mali_gralloc_ion_map(private_handle_t *hnd)
 {
-	uint64_t usage = hnd->producer_usage | hnd->consumer_usage;
+	std::array<void*, MAX_BUFFER_FDS> vaddrs;
+	vaddrs.fill(nullptr);
 
+	uint64_t usage = hnd->producer_usage | hnd->consumer_usage;
 	/* Do not allow cpu access to secure buffers */
 	if (usage & (GRALLOC_USAGE_PROTECTED | GRALLOC_USAGE_NOZEROED)
 			&& !(usage & GRALLOC_USAGE_PRIVATE_NONSECURE))
 	{
-		return 0;
+		return vaddrs;
 	}
 
 	for (int fidx = 0; fidx < hnd->fd_count; fidx++) {
@@ -507,38 +497,38 @@ int mali_gralloc_ion_map(private_handle_t *hnd)
 
 			for (int cidx = 0; cidx < fidx; fidx++)
 			{
-				munmap((void*)hnd->bases[cidx], hnd->alloc_sizes[cidx]);
-				hnd->bases[cidx] = 0;
+				munmap((void*)vaddrs[cidx], hnd->alloc_sizes[cidx]);
+				vaddrs[cidx] = 0;
 			}
 
-			return -err;
+			return vaddrs;
 		}
 
-		hnd->bases[fidx] = uintptr_t(mappedAddress);
+		vaddrs[fidx] = mappedAddress;
 	}
 
-	return 0;
+	return vaddrs;
 }
 
-void mali_gralloc_ion_unmap(private_handle_t *hnd)
+void mali_gralloc_ion_unmap(private_handle_t *hnd, std::array<void*, MAX_BUFFER_FDS>& vaddrs)
 {
 	for (int i = 0; i < hnd->fd_count; i++)
 	{
 		int err = 0;
 
-		if (hnd->bases[i])
+		if (vaddrs[i])
 		{
-			err = munmap((void*)hnd->bases[i], hnd->alloc_sizes[i]);
+			err = munmap(vaddrs[i], hnd->alloc_sizes[i]);
 		}
 
 		if (err)
 		{
 			MALI_GRALLOC_LOGE("Could not munmap base:%p size:%" PRIu64 " '%s'",
-					(void*)hnd->bases[i], hnd->alloc_sizes[i], strerror(errno));
+					(void*)vaddrs[i], hnd->alloc_sizes[i], strerror(errno));
 		}
 		else
 		{
-			hnd->bases[i] = 0;
+			vaddrs[i] = 0;
 		}
 	}
 
