@@ -507,7 +507,9 @@ static bool validate_descriptor(buffer_descriptor_t * const bufDescriptor) {
 		return false;
 	}
 
-	if (!validate_size(bufDescriptor->layer_count, bufDescriptor->width, bufDescriptor->height)) {
+	// BLOB formats are used for some ML models whose size can be really large (up to 2GB)
+	if (bufDescriptor->hal_format != MALI_GRALLOC_FORMAT_INTERNAL_BLOB &&
+	    !validate_size(bufDescriptor->layer_count, bufDescriptor->width, bufDescriptor->height)) {
 		return false;
 	}
 
