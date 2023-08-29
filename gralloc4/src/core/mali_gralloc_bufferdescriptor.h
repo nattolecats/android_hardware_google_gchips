@@ -50,8 +50,8 @@ struct buffer_descriptor_t
 	 * Calculated values that will be passed to the allocator in order to
 	 * allocate the buffer.
 	 */
-	uint64_t alloc_sizes[MAX_PLANES];
-	int pixel_stride;
+	size_t alloc_sizes[MAX_PLANES];
+	size_t pixel_stride;
 	uint64_t alloc_format;
 	uint32_t fd_count;
 	uint32_t plane_count;
@@ -85,12 +85,12 @@ struct buffer_descriptor_t
 			"format_type(%u) "
 			"name(%s)"
 			"reserved_size(%" PRIu64 ") "
-			"alloc_sizes(%" PRIu64 ", %" PRIu64 ", %" PRIu64 ")"
-			"pixel_stride(%d) alloc_format(0x%" PRIx64 ") fd_count(%d) "
+			"alloc_sizes(%zu, %zu, %zu)"
+			"pixel_stride(%zu) alloc_format(0x%" PRIx64 ") fd_count(%d) "
 			"plane_count(%u) "
-			"plane[0](offset %" PRId64 ", idx %u, size %" PRIu64 " byte_stride %u, wh %u %u)"
-			"plane[1](offset %" PRId64 ", idx %u, size %" PRIu64 " byte_stride %u, wh %u %u)"
-			"plane[2](offset %" PRId64 ", idx %u, size %" PRIu64 " byte_stride %u, wh %u %u)"
+			"plane[0](offset %" PRId64 ", idx %u, size %zu byte_stride %zu, wh %" PRIu64 " %" PRIu64 ")"
+			"plane[1](offset %" PRId64 ", idx %u, size %zu byte_stride %zu, wh %" PRIu64 " %" PRIu64 ")"
+			"plane[2](offset %" PRId64 ", idx %u, size %zu byte_stride %zu, wh %" PRIu64 " %" PRIu64 ")"
 			"\n",
 			str.c_str(),
 			width, height,

@@ -491,7 +491,7 @@ std::array<void*, MAX_BUFFER_FDS> mali_gralloc_ion_map(private_handle_t *hnd)
 		if (MAP_FAILED == mappedAddress)
 		{
 			int err = errno;
-			MALI_GRALLOC_LOGE("mmap( fds[%d]:%d size:%" PRIu64 " ) failed with %s",
+			MALI_GRALLOC_LOGE("mmap( fds[%d]:%d size:%zu ) failed with %s",
 					fidx, hnd->fds[fidx], hnd->alloc_sizes[fidx], strerror(err));
 			hnd->dump("map fail");
 
@@ -523,7 +523,7 @@ void mali_gralloc_ion_unmap(private_handle_t *hnd, std::array<void*, MAX_BUFFER_
 
 		if (err)
 		{
-			MALI_GRALLOC_LOGE("Could not munmap base:%p size:%" PRIu64 " '%s'",
+			MALI_GRALLOC_LOGE("Could not munmap base:%p size:%zu '%s'",
 					(void*)vaddrs[i], hnd->alloc_sizes[i], strerror(errno));
 		}
 		else

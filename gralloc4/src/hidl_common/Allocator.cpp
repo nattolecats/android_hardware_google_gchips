@@ -225,7 +225,7 @@ const std::string dump() {
 
 	std::stringstream ss;
 	// TODO: Add logs to indicate overflow
-	for (int i = 0; i < std::min(total_allocated, allocated_buffers.size()); i++) {
+	for (int i = 0; i < std::min(total_allocated, static_cast<uint64_t>(allocated_buffers.size())); i++) {
 		const auto& [name, buffer_id, inodes, format, usage, width, height] = allocated_buffers[i];
 		ss << "buffer_id: " << buffer_id << ", inodes: ";
 		for (auto it = inodes.begin(); it != inodes.end(); it++) {
