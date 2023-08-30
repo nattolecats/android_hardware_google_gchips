@@ -578,7 +578,7 @@ static void calc_allocation_size(const int width,
 		else
 		{
 			assert((plane_info[plane].alloc_width * format.bpp[plane]) % 8 == 0);
-			plane_info[plane].byte_stride = (plane_info[plane].alloc_width * format.bpp[plane]) / 8;
+			plane_info[plane].byte_stride = (static_cast<uint64_t>(plane_info[plane].alloc_width) * format.bpp[plane]) / 8;
 
 			/*
 			 * Align byte stride (uncompressed allocations only).
