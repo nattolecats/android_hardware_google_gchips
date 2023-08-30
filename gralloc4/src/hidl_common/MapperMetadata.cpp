@@ -584,6 +584,15 @@ void get_metadata(const private_handle_t *handle, const IMapper::MetadataType &m
 				}
 				break;
 			}
+			case ::pixel::graphics::MetadataType::PLANE_DMA_BUFS:
+			{
+				std::vector<int> plane_fds(MAX_BUFFER_FDS, -1);
+				for (int i = 0; i < get_num_planes(handle); i++) {
+					plane_fds[i] = handle->fds[handle->plane_info[i].fd_idx];
+				}
+				vec = ::pixel::graphics::util::encodeVector<int>(plane_fds);
+				break;
+			}
 			default:
 				err = android::BAD_VALUE;
 		}
