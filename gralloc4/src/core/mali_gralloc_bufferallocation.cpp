@@ -439,7 +439,7 @@ T lcm(T a, T b)
 static void update_yv12_stride(int8_t plane,
                                size_t luma_stride,
                                uint32_t stride_align,
-                               size_t * byte_stride)
+                               uint64_t * byte_stride)
 {
 	// https://developer.android.com/reference/android/graphics/ImageFormat#YV12
 	if (plane == 0) {
@@ -573,8 +573,8 @@ static void calc_allocation_size(const int width,
                                  const bool has_gpu_usage,
                                  const bool has_BIG_usage,
                                  const bool has_camera_usage,
-                                 size_t * const pixel_stride,
-                                 size_t * const size,
+                                 uint64_t * const pixel_stride,
+                                 uint64_t  * const size,
                                  plane_info_t plane_info[MAX_PLANES])
 {
 	/* pixel_stride is set outside this function after this function is called */
@@ -694,7 +694,7 @@ static void calc_allocation_size(const int width,
 			}
 #endif
 		}
-		MALI_GRALLOC_LOGV("Byte stride: %zu", plane_info[plane].byte_stride);
+		MALI_GRALLOC_LOGV("Byte stride: %" PRIu64, plane_info[plane].byte_stride);
 
 		const uint32_t sb_num = (plane_info[plane].alloc_width * plane_info[plane].alloc_height)
 		                      / AFBC_PIXELS_PER_BLOCK;
@@ -764,7 +764,7 @@ static void calc_allocation_size(const int width,
 		 * Size must be updated after offset.
 		 */
 		*size += body_size + header_size;
-		MALI_GRALLOC_LOGV("size=%zu", *size);
+		MALI_GRALLOC_LOGV("size=%" PRIu64, *size);
 	}
 }
 
@@ -974,8 +974,8 @@ static int prepare_descriptor_exynos_formats(
 				else
 				{
 					MALI_GRALLOC_LOGE("buffer with format (%s %" PRIx64
-									  ") has size %zu"
-									  " != byte_stride %zu * alloc_height %" PRIu64,
+									  ") has size %" PRIu64
+									  " != byte_stride %" PRIu64 " * alloc_height %" PRIu64,
 									  format_name(bufDescriptor->alloc_format),
 									  bufDescriptor->alloc_format,
 									  plane[pidx].size, plane[pidx].byte_stride, plane[pidx].alloc_height);

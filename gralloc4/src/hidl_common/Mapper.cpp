@@ -422,7 +422,7 @@ Error validateBufferSize(void* buffer,
 	{
 		if (gralloc_buffer->alloc_sizes[i] < grallocDescriptor.alloc_sizes[i])
 		{
-			MALI_GRALLOC_LOGW("Buf size mismatch. fd_idx(%d) Buffer size = %zu, Descriptor (derived) size = %zu",
+			MALI_GRALLOC_LOGW("Buf size mismatch. fd_idx(%d) Buffer size = %" PRIu64 ", Descriptor (derived) size = %" PRIu64,
 			       i, gralloc_buffer->alloc_sizes[i], grallocDescriptor.alloc_sizes[i]);
 			return Error::BAD_VALUE;
 		}
@@ -430,7 +430,7 @@ Error validateBufferSize(void* buffer,
 
 	if (in_stride != 0 && (uint32_t)gralloc_buffer->stride != in_stride)
 	{
-		MALI_GRALLOC_LOGE("Stride mismatch. Expected stride = %d, Buffer stride = %zu",
+		MALI_GRALLOC_LOGE("Stride mismatch. Expected stride = %d, Buffer stride = %" PRIu64,
 		                       in_stride, gralloc_buffer->stride);
 		return Error::BAD_VALUE;
 	}
@@ -455,7 +455,7 @@ Error validateBufferSize(void* buffer,
 		{
 			if (gralloc_buffer->plane_info[i].byte_stride != grallocDescriptor.plane_info[i].byte_stride)
 			{
-				MALI_GRALLOC_LOGE("Buffer byte stride 0x%zu mismatch with desc byte stride 0x%zu in plane %d ",
+				MALI_GRALLOC_LOGE("Buffer byte stride 0x%" PRIx64 " mismatch with desc byte stride 0x%" PRIx64 " in plane %d ",
 				      gralloc_buffer->plane_info[i].byte_stride, grallocDescriptor.plane_info[i].byte_stride, i);
 				return Error::BAD_VALUE;
 			}
