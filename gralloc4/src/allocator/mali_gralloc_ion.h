@@ -30,8 +30,8 @@ int mali_gralloc_ion_sync_start(const private_handle_t * const hnd,
                                 const bool read, const bool write);
 int mali_gralloc_ion_sync_end(const private_handle_t * const hnd,
                               const bool read, const bool write);
-int mali_gralloc_ion_map(private_handle_t *hnd);
-void mali_gralloc_ion_unmap(private_handle_t *hnd);
+std::array<void*, MAX_BUFFER_FDS> mali_gralloc_ion_map(private_handle_t *hnd);
+void mali_gralloc_ion_unmap(private_handle_t *hnd, std::array<void*, MAX_BUFFER_FDS>& vaddrs);
 int mali_gralloc_attr_allocate(void);
 
 #endif /* MALI_GRALLOC_ION_H_ */
