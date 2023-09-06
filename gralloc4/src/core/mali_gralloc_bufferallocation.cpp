@@ -30,7 +30,6 @@
 
 #include "mali_gralloc_bufferallocation.h"
 #include "allocator/mali_gralloc_ion.h"
-#include "allocator/mali_gralloc_shared_memory.h"
 #include "mali_gralloc_buffer.h"
 #include "mali_gralloc_bufferdescriptor.h"
 #include "mali_gralloc_log.h"
@@ -1216,8 +1215,8 @@ int mali_gralloc_buffer_free(buffer_handle_t pHandle)
 		return -1;
 	}
 
-	gralloc_shared_memory_free(hnd);
-	mali_gralloc_ion_free(hnd);
+	native_handle_close(hnd);
+	native_handle_delete(hnd);
 
 	return 0;
 }

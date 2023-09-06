@@ -44,7 +44,6 @@ cc_library_shared {
 	srcs: [
 		"libGralloc4Wrapper/wrapper.cpp",
 		"allocator/mali_gralloc_ion.cpp",
-		"allocator/mali_gralloc_shared_memory.cpp",
 		"core/format_info.cpp",
 		"core/mali_gralloc_formats.cpp",
 		"core/mali_gralloc_bufferallocation.cpp",
