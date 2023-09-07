@@ -23,7 +23,6 @@
 #include <vector>
 #include "gralloctypes/Gralloc4.h"
 #include "mali_gralloc_buffer.h"
-#include "allocator/mali_gralloc_shared_memory.h"
 #include "core/mali_gralloc_bufferdescriptor.h"
 #include "gralloc_helper.h"
 
@@ -67,6 +66,10 @@ android::status_t set_cta861_3(const private_handle_t *hnd, const std::optional<
 
 void get_smpte2094_40(const private_handle_t *hnd, std::optional<std::vector<uint8_t>> *smpte2094_40);
 android::status_t set_smpte2094_40(const private_handle_t *hnd, const std::optional<std::vector<uint8_t>> &smpte2094_40);
+
+void* get_video_hdr(const private_handle_t *hnd);
+
+void* get_video_roiinfo(const private_handle_t *hnd);
 
 } // namespace common
 } // namespace mapper
