@@ -455,21 +455,21 @@ Error validateBufferSize(void* buffer,
 		{
 			if (gralloc_buffer->plane_info[i].byte_stride != grallocDescriptor.plane_info[i].byte_stride)
 			{
-				MALI_GRALLOC_LOGE("Buffer byte stride 0x%" PRIx64 " mismatch with desc byte stride 0x%" PRIx64 " in plane %d ",
+				MALI_GRALLOC_LOGE("Buffer byte stride %" PRIu64 " mismatch with desc byte stride %" PRIu64 " in plane %d ",
 				      gralloc_buffer->plane_info[i].byte_stride, grallocDescriptor.plane_info[i].byte_stride, i);
 				return Error::BAD_VALUE;
 			}
 
 			if (gralloc_buffer->plane_info[i].alloc_width != grallocDescriptor.plane_info[i].alloc_width)
 			{
-				MALI_GRALLOC_LOGE("Buffer alloc width 0x%" PRIu64 " mismatch with desc alloc width 0x%" PRIu64 " in plane %d ",
+				MALI_GRALLOC_LOGE("Buffer alloc width %" PRIu64 " mismatch with desc alloc width %" PRIu64 " in plane %d ",
 				      gralloc_buffer->plane_info[i].alloc_width, grallocDescriptor.plane_info[i].alloc_width, i);
 				return Error::BAD_VALUE;
 			}
 
 			if (gralloc_buffer->plane_info[i].alloc_height != grallocDescriptor.plane_info[i].alloc_height)
 			{
-				MALI_GRALLOC_LOGE("Buffer alloc height 0x%" PRIu64 " mismatch with desc alloc height 0x%" PRIu64 " in plane %d ",
+				MALI_GRALLOC_LOGE("Buffer alloc height %" PRIu64 " mismatch with desc alloc height %" PRIu64 " in plane %d ",
 				      gralloc_buffer->plane_info[i].alloc_height, grallocDescriptor.plane_info[i].alloc_height, i);
 				return Error::BAD_VALUE;
 			}
