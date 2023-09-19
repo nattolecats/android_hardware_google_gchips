@@ -25,6 +25,8 @@
 #include <map>
 #include <mutex>
 
+#include <unistd.h>
+
 #include "allocator/mali_gralloc_ion.h"
 #include "mali_gralloc_buffer.h"
 
@@ -73,8 +75,8 @@ private:
         auto check_pid = [&](int fd, uint64_t allocated_size) -> bool {
             auto size = get_buffer_size(fd);
             auto size_padding = size - (off_t)allocated_size;
-            if ((size != -1) && ((size_padding < 0) || (size_padding > PAGE_SIZE))) {
-                MALI_GRALLOC_LOGE("%s failed: fd (%d) size (%jd) is not within a PAGE_SIZE of "
+            if ((size != -1) && ((size_padding < 0) || (size_padding > getpagesize()))) {
+                MALI_GRALLOC_LOGE("%s failed: fd (%d) size (%jd) is not within a page of "
                                   "expected size (%" PRIx64 ")",
                                   __func__, fd, static_cast<intmax_t>(size), allocated_size);
                 return false;
