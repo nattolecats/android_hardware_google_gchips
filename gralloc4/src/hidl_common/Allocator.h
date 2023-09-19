@@ -56,6 +56,8 @@ void allocate(const buffer_descriptor_t &bufferDescriptor, uint32_t count, IAllo
 
 const std::string dump();
 
+int isSupported(buffer_descriptor_t *const bufDescriptor);
+
 } // namespace common
 } // namespace allocator
 } // namespace arm
