@@ -97,7 +97,7 @@ typedef struct plane_info {
 	 * For uncompressed allocations, byte_stride might contain additional
 	 * padding beyond the alloc_width. For AFBC, alignment is zero.
 	 */
-	uint32_t byte_stride;
+	uint64_t byte_stride;
 
 	/*
 	 * Dimensions of plane (in pixels).
@@ -117,8 +117,8 @@ typedef struct plane_info {
 	 * be wholly within the allocation dimensions. The crop region top-left
 	 * will be relative to the start of allocation.
 	 */
-	uint32_t alloc_width;
-	uint32_t alloc_height;
+	uint64_t alloc_width;
+	uint64_t alloc_height;
 } plane_info_t;
 
 struct private_handle_t;
@@ -210,7 +210,7 @@ struct private_handle_t
 	 *
 	 * NOTE: 'stride' values sometimes vary significantly from plane_info[0].alloc_width.
 	 */
-	int stride DEFAULT_INITIALIZER(0);
+	uint64_t stride DEFAULT_INITIALIZER(0);
 
 	/*
 	 * Allocation properties.
@@ -236,10 +236,8 @@ struct private_handle_t
 	// locally mapped shared attribute area
 
 	int ion_handles[MAX_BUFFER_FDS];
-	uint64_t bases[MAX_BUFFER_FDS];
 	uint64_t alloc_sizes[MAX_BUFFER_FDS];
 
-	void *attr_base __attribute__((aligned (8))) DEFAULT_INITIALIZER(nullptr);
 	off_t offset    __attribute__((aligned (8))) DEFAULT_INITIALIZER(0);
 
 	/* Size of the attribute shared region in bytes. */
@@ -266,7 +264,7 @@ struct private_handle_t
 		uint64_t _consumer_usage, uint64_t _producer_usage,
 		int _fds[MAX_FDS], int _fd_count,
 		int _req_format, uint64_t _alloc_format,
-		int _width, int _height, int _stride,
+		int _width, int _height, uint64_t _stride,
 		uint64_t _layer_count, plane_info_t _plane_info[MAX_PLANES])
 	    : private_handle_t()
 	{
@@ -292,7 +290,6 @@ struct private_handle_t
 		if (_alloc_sizes)
 			memcpy(alloc_sizes, _alloc_sizes, sizeof(alloc_sizes));
 
-		memset(bases, 0, sizeof(bases));
 		memset(ion_handles, 0, sizeof(ion_handles));
 	}
 
@@ -399,14 +396,13 @@ struct private_handle_t
 			"wh(%d %d) "
 			"req_format(%#x) alloc_format(%#" PRIx64 ") "
 			"usage_pc(0x%" PRIx64 " 0x%" PRIx64 ") "
-			"stride(%d) "
-			"psize(%" PRIu64 ") byte_stride(%d) internal_wh(%d %d) "
-			"psize1(%" PRIu64 ") byte_stride1(%d) internal_wh1(%d %d) "
-			"psize2(%" PRIu64 ") byte_stride2(%d) internal_wh2(%d %d) "
+			"stride(%" PRIu64 ") "
+			"psize(%" PRIu64 ") byte_stride(%" PRIu64 ") internal_wh(%" PRIu64 " %" PRIu64 ") "
+			"psize1(%" PRIu64 ") byte_stride1(%" PRIu64 ") internal_wh1(%" PRIu64 " %" PRIu64 ") "
+			"psize2(%" PRIu64 ") byte_stride2(%" PRIu64 ") internal_wh2(%" PRIu64 " %" PRIu64 ") "
 			"alloc_format(0x%" PRIx64 ") "
 			"alloc_sizes(%" PRIu64 " %" PRIu64 " %" PRIu64 ") "
 			"layer_count(%d) "
-			"bases(%p %p %p %p) "
 			"\n",
 			str,
 			numInts, numFds, fd_count,
@@ -421,8 +417,7 @@ struct private_handle_t
 			plane_info[2].size, plane_info[2].byte_stride, plane_info[2].alloc_width, plane_info[2].alloc_height,
 			alloc_format,
 			alloc_sizes[0], alloc_sizes[1], alloc_sizes[2],
-			layer_count,
-			(void*)bases[0], (void*)bases[1], (void*)bases[2], attr_base
+			layer_count
 		);
 	}
 
@@ -446,5 +441,9 @@ struct private_handle_t
 /* Restore previous diagnostic for pedantic */
 #pragma GCC diagnostic pop
 #endif
+
+// The size of private_handle_t is calculated manually. This check ensures that private_handle_t has
+// the same layout for 32-bit and 64-bit processes.
+static_assert(sizeof(private_handle_t) == 328);
 
 #endif /* MALI_GRALLOC_BUFFER_H_ */

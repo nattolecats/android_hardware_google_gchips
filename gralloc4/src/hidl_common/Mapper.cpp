@@ -245,14 +245,6 @@ static Error unlockBuffer(buffer_handle_t bufferHandle,
 	}
 
 	auto private_handle = private_handle_t::dynamicCast(bufferHandle);
-#if 0
-	if (!private_handle->cpu_write && !private_handle->cpu_read)
-	{
-		MALI_GRALLOC_LOGW("Attempt to call unlock*() on an unlocked buffer (%p)", bufferHandle);
-
-		/* TODO: handle simulatneous locks differently. May be keep a global lock count per buffer? */
-	}
-#endif
 
 	const int result = mali_gralloc_unlock(bufferHandle);
 	if (result)
@@ -294,15 +286,6 @@ void importBuffer(const hidl_handle& rawHandle, IMapper::importBuffer_cb hidl_cb
 	}
 
 	auto *private_handle = static_cast<private_handle_t *>(bufferHandle);
-	private_handle->attr_base = mmap(nullptr, private_handle->attr_size, PROT_READ | PROT_WRITE,
-	                                 MAP_SHARED, private_handle->get_share_attr_fd(), 0);
-	if (private_handle->attr_base == MAP_FAILED)
-	{
-		native_handle_close(bufferHandle);
-		native_handle_delete(bufferHandle);
-		hidl_cb(Error::NO_RESOURCES, nullptr);
-		return;
-	}
 
 	if (gRegisteredHandles->add(bufferHandle) == false)
 	{
@@ -330,16 +313,6 @@ Error freeBuffer(void* buffer)
 	{
 		MALI_GRALLOC_LOGE("Invalid buffer handle %p to freeBuffer", buffer);
 		return Error::BAD_BUFFER;
-	}
-
-	{
-		auto *private_handle = static_cast<private_handle_t *>(bufferHandle);
-		int ret = munmap(private_handle->attr_base, private_handle->attr_size);
-		if (ret < 0)
-		{
-			MALI_GRALLOC_LOGW("munmap: %s", strerror(errno));
-		}
-		private_handle->attr_base = MAP_FAILED;
 	}
 
 	const Error status = unregisterBuffer(bufferHandle);
@@ -457,7 +430,7 @@ Error validateBufferSize(void* buffer,
 
 	if (in_stride != 0 && (uint32_t)gralloc_buffer->stride != in_stride)
 	{
-		MALI_GRALLOC_LOGE("Stride mismatch. Expected stride = %d, Buffer stride = %d",
+		MALI_GRALLOC_LOGE("Stride mismatch. Expected stride = %d, Buffer stride = %" PRIu64,
 		                       in_stride, gralloc_buffer->stride);
 		return Error::BAD_VALUE;
 	}
@@ -482,21 +455,21 @@ Error validateBufferSize(void* buffer,
 		{
 			if (gralloc_buffer->plane_info[i].byte_stride != grallocDescriptor.plane_info[i].byte_stride)
 			{
-				MALI_GRALLOC_LOGE("Buffer byte stride 0x%x mismatch with desc byte stride 0x%x in plane %d ",
+				MALI_GRALLOC_LOGE("Buffer byte stride %" PRIu64 " mismatch with desc byte stride %" PRIu64 " in plane %d ",
 				      gralloc_buffer->plane_info[i].byte_stride, grallocDescriptor.plane_info[i].byte_stride, i);
 				return Error::BAD_VALUE;
 			}
 
 			if (gralloc_buffer->plane_info[i].alloc_width != grallocDescriptor.plane_info[i].alloc_width)
 			{
-				MALI_GRALLOC_LOGE("Buffer alloc width 0x%x mismatch with desc alloc width 0x%x in plane %d ",
+				MALI_GRALLOC_LOGE("Buffer alloc width %" PRIu64 " mismatch with desc alloc width %" PRIu64 " in plane %d ",
 				      gralloc_buffer->plane_info[i].alloc_width, grallocDescriptor.plane_info[i].alloc_width, i);
 				return Error::BAD_VALUE;
 			}
 
 			if (gralloc_buffer->plane_info[i].alloc_height != grallocDescriptor.plane_info[i].alloc_height)
 			{
-				MALI_GRALLOC_LOGE("Buffer alloc height 0x%x mismatch with desc alloc height 0x%x in plane %d ",
+				MALI_GRALLOC_LOGE("Buffer alloc height %" PRIu64 " mismatch with desc alloc height %" PRIu64 " in plane %d ",
 				      gralloc_buffer->plane_info[i].alloc_height, grallocDescriptor.plane_info[i].alloc_height, i);
 				return Error::BAD_VALUE;
 			}
@@ -773,7 +746,13 @@ void getReservedRegion(void *buffer, IMapper::getReservedRegion_cb hidl_cb)
 		hidl_cb(Error::BAD_BUFFER, 0, 0);
 		return;
 	}
-	void *reserved_region = static_cast<std::byte *>(handle->attr_base)
+
+	auto metadata_addr_oe = mali_gralloc_reference_get_metadata_addr(handle);
+	if (!metadata_addr_oe.has_value()) {
+		hidl_cb(Error::BAD_BUFFER, 0, 0);
+	}
+
+	void *reserved_region = static_cast<std::byte *>(metadata_addr_oe.value())
 	    + mapper::common::shared_metadata_size();
 	hidl_cb(Error::NONE, reserved_region, handle->reserved_region_size);
 }

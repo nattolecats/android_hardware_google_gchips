@@ -35,8 +35,8 @@ typedef uint8_t format_support_flags;
 
 typedef struct
 {
-	uint16_t width;
-	uint16_t height;
+	uint64_t width;
+	uint64_t height;
 } rect_t;
 
 constexpr bool is_power2(uint8_t n)
