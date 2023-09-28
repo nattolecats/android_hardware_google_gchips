@@ -352,7 +352,7 @@ int mali_gralloc_ion_allocate_attr(private_handle_t *hnd)
  */
 int mali_gralloc_ion_allocate(const gralloc_buffer_descriptor_t *descriptors,
                               uint32_t numDescriptors, buffer_handle_t *pHandle,
-                              bool *shared_backend, int ion_fd)
+                              bool *shared_backend, bool is_dry)
 {
 	ATRACE_CALL();
 	GRALLOC_UNUSED(shared_backend);
@@ -375,7 +375,7 @@ int mali_gralloc_ion_allocate(const gralloc_buffer_descriptor_t *descriptors,
 		    nullptr, bufDescriptor->fd_count,
 		    bufDescriptor->hal_format, bufDescriptor->alloc_format,
 		    bufDescriptor->width, bufDescriptor->height, bufDescriptor->pixel_stride,
-		    bufDescriptor->layer_count, bufDescriptor->plane_info);
+		    bufDescriptor->layer_count, bufDescriptor->plane_info, is_dry);
 
 		/* Reset the number of valid filedescriptors, we will increment
 		 * it each time a valid fd is added, so we can rely on the
@@ -391,16 +391,13 @@ int mali_gralloc_ion_allocate(const gralloc_buffer_descriptor_t *descriptors,
 
 		pHandle[i] = hnd;
 		usage = bufDescriptor->consumer_usage | bufDescriptor->producer_usage;
+		if (is_dry) continue;
 
 		for (uint32_t fidx = 0; fidx < bufDescriptor->fd_count; fidx++)
 		{
 			int& fd = hnd->fds[fidx];
 
-			if (ion_fd >= 0 && fidx == 0) {
-				fd = ion_fd;
-			} else {
-				fd = alloc_from_dmabuf_heap(usage, bufDescriptor->alloc_sizes[fidx], bufDescriptor->name);
-			}
+			fd = alloc_from_dmabuf_heap(usage, bufDescriptor->alloc_sizes[fidx], bufDescriptor->name);
 
 			if (fd < 0)
 			{
@@ -412,6 +409,7 @@ int mali_gralloc_ion_allocate(const gralloc_buffer_descriptor_t *descriptors,
 			hnd->incr_numfds(1);
 		}
 	}
+	if(is_dry) return 0;
 
 #if defined(GRALLOC_INIT_AFBC) && (GRALLOC_INIT_AFBC == 1)
 	ATRACE_NAME("AFBC init block");

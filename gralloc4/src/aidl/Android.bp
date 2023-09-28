@@ -9,6 +9,9 @@ cc_library_shared {
     defaults: [
         "arm_gralloc_api_4x_defaults",
     ],
+    header_libs: [
+        "pixel-gralloc-headers",
+    ],
     shared_libs: [
         "android.hardware.graphics.allocator-V1-ndk",
         "android.hardware.graphics.allocator@4.0",
@@ -27,4 +30,3 @@ cc_library_shared {
         "hardware/google/gchips/include",
     ],
 }
-
