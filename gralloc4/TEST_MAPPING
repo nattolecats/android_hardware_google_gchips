@@ -1,0 +1,7 @@
+{
+  "postsubmit": [
+    {
+      "name": "VtsHalGraphicsMapperV4_0TargetTest"
+    }
+  ]
+}
