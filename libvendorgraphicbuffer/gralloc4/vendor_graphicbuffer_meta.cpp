@@ -34,6 +34,8 @@ using arm::mapper::common::shared_metadata;
 using aidl::android::hardware::graphics::common::Dataspace;
 using android::gralloc4::encodeDataspace;
 using android::gralloc4::decodeDataspace;
+using android::gralloc4::decodePixelFormatFourCC;
+using android::gralloc4::decodePixelFormatModifier;
 using android::hardware::graphics::mapper::V4_0::IMapper;
 using android::hardware::graphics::mapper::V4_0::Error;
 
@@ -185,6 +187,7 @@ GRALLOC_META_GETTER(uint64_t, frameworkFormat, req_format);
 GRALLOC_META_GETTER(int, width, width);
 GRALLOC_META_GETTER(int, height, height);
 GRALLOC_META_GETTER(uint32_t, stride, stride);
+GRALLOC_META_GETTER(uint32_t, stride_in_bytes, plane_info[0].byte_stride);
 GRALLOC_META_GETTER(uint32_t, vstride, plane_info[0].alloc_height);
 
 GRALLOC_META_GETTER(uint64_t, producer_usage, producer_usage);
@@ -252,6 +255,58 @@ void* VendorGraphicBufferMeta::get_video_metadata_roiinfo(buffer_handle_t hnd)
 			sizeof(shared_metadata) + gralloc_hnd->reserved_region_size;
 
 	return nullptr;
+}
+
+uint32_t VendorGraphicBufferMeta::get_format_fourcc(buffer_handle_t hnd) {
+	native_handle_t* handle = const_cast<native_handle_t*>(hnd);
+	if (!handle) {
+		return DRM_FORMAT_INVALID;
+	}
+
+	Error error = Error::NONE;
+	uint32_t fourcc;
+	get_mapper()->get(handle, android::gralloc4::MetadataType_PixelFormatFourCC,
+	                  [&](const auto& tmpError, const android::hardware::hidl_vec<uint8_t>& tmpVec) {
+	                  	error = tmpError;
+	                  	if (error != Error::NONE) {
+	                  		return;
+	                  	}
+	                  	error = static_cast<Error>(decodePixelFormatFourCC(tmpVec, &fourcc));
+	                  });
+
+
+	if (error != Error::NONE) {
+		ALOGE("Failed to get fourcc");
+		return DRM_FORMAT_INVALID;
+	}
+
+	return fourcc;
+}
+
+uint64_t VendorGraphicBufferMeta::get_format_modifier(buffer_handle_t hnd) {
+	native_handle_t* handle = const_cast<native_handle_t*>(hnd);
+	if (!handle) {
+		return DRM_FORMAT_MOD_INVALID;
+	}
+
+	Error error = Error::NONE;
+	uint64_t modifier;
+	get_mapper()->get(handle, android::gralloc4::MetadataType_PixelFormatModifier,
+	                  [&](const auto& tmpError, const android::hardware::hidl_vec<uint8_t>& tmpVec) {
+	                  	error = tmpError;
+	                  	if (error != Error::NONE) {
+	                  		return;
+	                  	}
+	                  	error = static_cast<Error>(decodePixelFormatModifier(tmpVec, &modifier));
+	                  });
+
+
+	if (error != Error::NONE) {
+		ALOGE("Failed to get format modifier");
+		return DRM_FORMAT_MOD_INVALID;
+	}
+
+	return modifier;
 }
 
 void VendorGraphicBufferMeta::init(const buffer_handle_t handle)
