@@ -29,6 +29,7 @@
 #include "mali_gralloc_formats.h"
 
 #include <pixel-gralloc/metadata.h>
+#include <pixel-gralloc/utils.h>
 
 #include <vector>
 
@@ -572,7 +573,7 @@ void get_metadata(const private_handle_t *handle, const IMapper::MetadataType &m
 	else if (metadataType.name == ::pixel::graphics::kPixelMetadataTypeName) {
 		switch (static_cast<::pixel::graphics::MetadataType>(metadataType.value)) {
 			case ::pixel::graphics::MetadataType::VIDEO_HDR:
-				vec = encodePointer(get_video_hdr(handle));
+				vec = ::pixel::graphics::utils::encode(get_video_hdr(handle));
 				break;
 			case ::pixel::graphics::MetadataType::VIDEO_ROI:
 			{
@@ -580,7 +581,7 @@ void get_metadata(const private_handle_t *handle, const IMapper::MetadataType &m
 				if (roi == nullptr) {
 					err = android::BAD_VALUE;
 				} else {
-					vec = encodePointer(roi);
+					vec = ::pixel::graphics::utils::encode(roi);
 				}
 				break;
 			}
@@ -590,7 +591,7 @@ void get_metadata(const private_handle_t *handle, const IMapper::MetadataType &m
 				for (int i = 0; i < get_num_planes(handle); i++) {
 					plane_fds[i] = handle->fds[handle->plane_info[i].fd_idx];
 				}
-				vec = ::pixel::graphics::util::encodeVector<int>(plane_fds);
+				vec = ::pixel::graphics::utils::encode(plane_fds);
 				break;
 			}
 			default:
