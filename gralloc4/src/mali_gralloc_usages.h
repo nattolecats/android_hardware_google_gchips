@@ -84,6 +84,8 @@ typedef enum
 	GS101_GRALLOC_USAGE_TPU_INPUT                          = GRALLOC_USAGE_PRIVATE_5,
 	GS101_GRALLOC_USAGE_TPU_OUTPUT                         = GRALLOC_USAGE_PRIVATE_3,
 	GS101_GRALLOC_USAGE_CAMERA_STATS                       = GRALLOC_USAGE_PRIVATE_2,
+
+	GS101_GRALLOC_USAGE_FACEAUTH_RAW_EVAL                  = ::pixel::graphics::Usage::FACEAUTH_RAW_EVAL,
 } mali_gralloc_usage_type;
 
 #define GRALLOC_USAGE_SW_WRITE_RARELY static_cast<uint64_t>(hidl_common::BufferUsage::CPU_WRITE_RARELY)
@@ -151,6 +153,7 @@ static const uint64_t VALID_USAGE =
 
     GS101_GRALLOC_USAGE_TPU_INPUT |         /* 1U << 62 */
     GS101_GRALLOC_USAGE_TPU_OUTPUT |        /* 1U << 31 */
+    GS101_GRALLOC_USAGE_FACEAUTH_RAW_EVAL | /* 1U << 63 */
     GS101_GRALLOC_USAGE_CAMERA_STATS |      /* 1U << 30 */
 
     GRALLOC_USAGE_ROIINFO |                 /* 1U << 52 */

@@ -55,6 +55,7 @@ static const char kDmabufSensorDirectHeapName[] = "sensor_direct_heap";
 static const char kDmabufFaceauthTpuHeapName[] = "faceauth_tpu-secure";
 static const char kDmabufFaceauthImgHeapName[] = "faimg-secure";
 static const char kDmabufFaceauthRawImgHeapName[] = "farawimg-secure";
+static const char kDmabufFaceauthEvalHeapName[] = "faeval-secure";
 static const char kDmabufFaceauthPrevHeapName[] = "faprev-secure";
 static const char kDmabufFaceauthModelHeapName[] = "famodel-secure";
 static const char kDmabufVframeSecureHeapName[] = "vframe-secure";
@@ -87,9 +88,14 @@ std::string select_dmabuf_heap(uint64_t usage)
 		std::string   name;
 	};
 
-	static const std::array<HeapSpecifier, 7> exact_usage_heaps =
+	static const std::array<HeapSpecifier, 8> exact_usage_heaps =
 	{{
 		// Faceauth heaps
+		{ // faceauth_evaluation_heap - used mostly on debug builds
+			GRALLOC_USAGE_PROTECTED | GRALLOC_USAGE_HW_CAMERA_WRITE | GRALLOC_USAGE_HW_CAMERA_READ |
+			GS101_GRALLOC_USAGE_FACEAUTH_RAW_EVAL,
+			kDmabufFaceauthEvalHeapName
+		},
 		{ // isp_image_heap
 			GRALLOC_USAGE_PROTECTED | GRALLOC_USAGE_HW_CAMERA_WRITE | GS101_GRALLOC_USAGE_TPU_INPUT,
 			kDmabufFaceauthImgHeapName
