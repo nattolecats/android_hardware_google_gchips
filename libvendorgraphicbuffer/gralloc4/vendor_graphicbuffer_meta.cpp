@@ -27,6 +27,8 @@
 #include "hidl_common/SharedMetadata_struct.h"
 #include "exynos_format.h"
 
+#include <pixel-gralloc/metadata.h>
+
 using namespace android;
 using namespace vendor::graphics;
 
@@ -38,6 +40,7 @@ using android::gralloc4::decodePixelFormatFourCC;
 using android::gralloc4::decodePixelFormatModifier;
 using android::hardware::graphics::mapper::V4_0::IMapper;
 using android::hardware::graphics::mapper::V4_0::Error;
+using MapperMetadataType = android::hardware::graphics::mapper::V4_0::IMapper::MetadataType;
 
 #define UNUSED(x) ((void)x)
 #define SZ_4k 0x1000
@@ -69,19 +72,10 @@ android::sp<IMapper> get_mapper() {
 	return mapper;
 }
 
-int VendorGraphicBufferMeta::get_video_metadata_fd(buffer_handle_t hnd)
+int VendorGraphicBufferMeta::get_video_metadata_fd(buffer_handle_t /*hnd*/)
 {
-	const auto *gralloc_hnd = convertNativeHandleToPrivateHandle(hnd);
-
-	if (!gralloc_hnd)
-		return -EINVAL;
-
-	uint64_t usage = gralloc_hnd->producer_usage | gralloc_hnd->consumer_usage;
-
-	if (usage & VendorGraphicBufferUsage::VIDEO_PRIVATE_DATA)
-		return gralloc_hnd->get_share_attr_fd();
-	else
-		return -EINVAL;
+	ALOGE("%s function is obsolete and should not be used", __FUNCTION__);
+	__builtin_trap();
 }
 
 int VendorGraphicBufferMeta::get_dataspace(buffer_handle_t hnd)
@@ -233,28 +227,80 @@ uint64_t VendorGraphicBufferMeta::get_usage(buffer_handle_t hnd)
 	return gralloc_hnd->producer_usage | gralloc_hnd->consumer_usage;
 }
 
+void* decodePointer(const android::hardware::hidl_vec<uint8_t>& tmpVec) {
+	constexpr uint8_t kPtrSize = sizeof(void*);
+	assert(tmpVec.size() == kPtrSize);
+
+	void* data_ptr;
+	std::memcpy(&data_ptr, tmpVec.data(), kPtrSize);
+
+	return data_ptr;
+}
+
 void* VendorGraphicBufferMeta::get_video_metadata(buffer_handle_t hnd)
 {
-	const auto *gralloc_hnd = convertNativeHandleToPrivateHandle(hnd);
-
-	if (gralloc_hnd == nullptr)
+	native_handle_t* handle = const_cast<native_handle_t*>(hnd);
+	if (!handle) {
 		return nullptr;
+	}
 
-	return gralloc_hnd->attr_base;
+	MapperMetadataType metadata_type{
+		.name = ::pixel::graphics::kPixelMetadataTypeName,
+		.value = static_cast<int64_t>(::pixel::graphics::MetadataType::VIDEO_HDR),
+	};
+
+	Error error = Error::NONE;
+	void* output = nullptr;
+
+	get_mapper()->get(handle, metadata_type,
+	                  [&](const auto& tmpError, const android::hardware::hidl_vec<uint8_t>& tmpVec) {
+	                  	error = tmpError;
+	                  	if (error != Error::NONE) {
+	                  		return;
+	                  	}
+	                  	output = decodePointer(tmpVec);
+	                  });
+
+
+	if (error != Error::NONE) {
+		ALOGE("Failed to get video HDR metadata");
+		return nullptr;
+	}
+
+	return output;
 }
 
 void* VendorGraphicBufferMeta::get_video_metadata_roiinfo(buffer_handle_t hnd)
 {
-	const auto *gralloc_hnd = convertNativeHandleToPrivateHandle(hnd);
-
-	if (gralloc_hnd == nullptr)
+	native_handle_t* handle = const_cast<native_handle_t*>(hnd);
+	if (!handle) {
 		return nullptr;
+	}
 
-	if (gralloc_hnd->get_usage() & VendorGraphicBufferUsage::ROIINFO)
-		return static_cast<char*>(gralloc_hnd->attr_base) +
-			sizeof(shared_metadata) + gralloc_hnd->reserved_region_size;
+	MapperMetadataType metadata_type{
+		.name = ::pixel::graphics::kPixelMetadataTypeName,
+		.value = static_cast<int64_t>(::pixel::graphics::MetadataType::VIDEO_ROI),
+	};
 
-	return nullptr;
+	Error error = Error::NONE;
+	void* output = nullptr;
+
+	get_mapper()->get(handle, metadata_type,
+	                  [&](const auto& tmpError, const android::hardware::hidl_vec<uint8_t>& tmpVec) {
+	                  	error = tmpError;
+	                  	if (error != Error::NONE) {
+	                  		return;
+	                  	}
+	                  	output = decodePointer(tmpVec);
+	                  });
+
+
+	if (error != Error::NONE) {
+		ALOGE("Failed to get video HDR metadata");
+		return nullptr;
+	}
+
+	return output;
 }
 
 uint32_t VendorGraphicBufferMeta::get_format_fourcc(buffer_handle_t hnd) {

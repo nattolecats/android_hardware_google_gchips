@@ -93,6 +93,7 @@ arm_gralloc_cc_defaults {
 	},
 	header_libs: [
 		"libgralloc_headers",
+		"pixel-gralloc-headers",
 	],
 	target: {
 		android: {

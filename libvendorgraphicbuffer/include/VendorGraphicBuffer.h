@@ -41,6 +41,7 @@ enum VendorGraphicBufferUsage {
 /* S.LSI specific usages */
 	NO_AFBC                         = 1ULL << 29,
 	MFC                             = 1ULL << 50,  /* identical to GRALLOC_USAGE_GOOGLE_IP_MFC */
+	BW                              = 1ULL << 51,  /* identical to GRALLOC_USAGE_GOOGLE_IP_BW */
 	ROIINFO                         = 1ULL << 52,
 	AFBC_PADDING                    = 1ULL << 53,
 	FORCE_BACKBUFFER                = 1ULL << 54,
@@ -146,32 +147,17 @@ public:
 	 * When gralloc3 is used, will always return nullptr
 	 */
 	static void* get_video_metadata_roiinfo(buffer_handle_t);
-	static int get_video_metadata_fd(buffer_handle_t);
 	static int get_dataspace(buffer_handle_t);
 	static int set_dataspace(buffer_handle_t hnd, android_dataspace_t dataspace);
+
+	// There should be no users of this function. It'll generate a trap.
+	static int get_video_metadata_fd(buffer_handle_t);
 
 	static buffer_handle_t import_buffer(buffer_handle_t);
 	static int free_buffer(buffer_handle_t);
 };
 
-
-/* Mapper extension class to allow locking with 64-bit usages */
-class VendorGraphicBufferMapper : public android::GraphicBufferMapper
-{
-public:
-	static inline VendorGraphicBufferMapper& get()
-	{
-		return static_cast<VendorGraphicBufferMapper&>(getInstance());
-	}
-
-	android::status_t lock64(buffer_handle_t handle, uint64_t usage, const android::Rect& bounds,
-		void** vaddr, int32_t* outBytesPerPixel = nullptr,
-		int32_t* outBytesPerStride = nullptr);
-
-	android::status_t lockYCbCr64(buffer_handle_t handle,
-		uint64_t usage, const android::Rect& bounds, android_ycbcr *ycbcr);
-};
-
+typedef class android::GraphicBufferMapper VendorGraphicBufferMapper;
 typedef class android::GraphicBufferAllocator VendorGraphicBufferAllocator;
 
 } /* namespace graphics */
