@@ -80,6 +80,7 @@ void allocate(const buffer_descriptor_t &bufferDescriptor, uint32_t count, IAllo
 
 	Error error = Error::NONE;
 	int stride = 0;
+	bool use_placeholder = bufferDescriptor.producer_usage & GRALLOC_USAGE_PLACEHOLDER_BUFFER;
 	std::vector<hidl_handle> grallocBuffers;
 	gralloc_buffer_descriptor_t grallocBufferDescriptor[1];
 
@@ -101,7 +102,7 @@ void allocate(const buffer_descriptor_t &bufferDescriptor, uint32_t count, IAllo
 		else
 #endif
 		{
-			allocResult = mali_gralloc_buffer_allocate(grallocBufferDescriptor, 1, &tmpBuffer, nullptr);
+			allocResult = mali_gralloc_buffer_allocate(grallocBufferDescriptor, 1, &tmpBuffer, nullptr, use_placeholder);
 			if (allocResult != 0)
 			{
 				MALI_GRALLOC_LOGE("%s, buffer allocation failed with %d", __func__, allocResult);

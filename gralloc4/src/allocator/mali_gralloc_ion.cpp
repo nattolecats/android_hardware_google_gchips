@@ -200,12 +200,14 @@ std::string select_dmabuf_heap(uint64_t usage)
 	return "";
 }
 
-int alloc_from_dmabuf_heap(uint64_t usage, size_t size, const std::string& buffer_name = "")
+int alloc_from_dmabuf_heap(uint64_t usage, size_t size, const std::string& buffer_name = "", bool use_placeholder = false)
 {
 	ATRACE_CALL();
 	if (size == 0) { return -1; }
 
-	auto heap_name = select_dmabuf_heap(usage);
+	auto heap_name = use_placeholder ? "system" : select_dmabuf_heap(usage);
+	if (use_placeholder) size = 1;
+
 	if (heap_name.empty()) {
 			MALI_GRALLOC_LOGW("No heap found for usage: %s (0x%" PRIx64 ")", describe_usage(usage).c_str(), usage);
 			return -EINVAL;
@@ -352,7 +354,7 @@ int mali_gralloc_ion_allocate_attr(private_handle_t *hnd)
  */
 int mali_gralloc_ion_allocate(const gralloc_buffer_descriptor_t *descriptors,
                               uint32_t numDescriptors, buffer_handle_t *pHandle,
-                              bool *shared_backend, int ion_fd)
+                              bool *shared_backend, bool use_placeholder)
 {
 	ATRACE_CALL();
 	GRALLOC_UNUSED(shared_backend);
@@ -396,11 +398,7 @@ int mali_gralloc_ion_allocate(const gralloc_buffer_descriptor_t *descriptors,
 		{
 			int& fd = hnd->fds[fidx];
 
-			if (ion_fd >= 0 && fidx == 0) {
-				fd = ion_fd;
-			} else {
-				fd = alloc_from_dmabuf_heap(usage, bufDescriptor->alloc_sizes[fidx], bufDescriptor->name);
-			}
+			fd = alloc_from_dmabuf_heap(usage, bufDescriptor->alloc_sizes[fidx], bufDescriptor->name, use_placeholder);
 
 			if (fd < 0)
 			{
@@ -412,6 +410,8 @@ int mali_gralloc_ion_allocate(const gralloc_buffer_descriptor_t *descriptors,
 			hnd->incr_numfds(1);
 		}
 	}
+
+	if (use_placeholder) return 0;
 
 #if defined(GRALLOC_INIT_AFBC) && (GRALLOC_INIT_AFBC == 1)
 	ATRACE_NAME("AFBC init block");

@@ -27,12 +27,12 @@
  * is not present.
  */
 
-
+#include <aidl/android/hardware/graphics/common/BufferUsage.h>
 #include <android/hardware/graphics/common/1.2/types.h>
+#include <pixel-gralloc/usage.h>
+
 /* BufferUsage is not defined in 1.2/types.h as there are no changes from previous version */
 namespace hidl_common = android::hardware::graphics::common::V1_1;
-
-#include <aidl/android/hardware/graphics/common/BufferUsage.h>
 namespace aidl_common = aidl::android::hardware::graphics::common;
 
 /* Local macro definitions to emulate Gralloc 1.0 usage interface */
@@ -78,6 +78,7 @@ typedef enum
 	GRALLOC_USAGE_GOOGLE_IP_BW                             = GRALLOC_USAGE_PRIVATE_16, /* Alias to BO */
 	GRALLOC_USAGE_GOOGLE_IP_BIG                            = GRALLOC_USAGE_PRIVATE_16, /* Alias to BO/BW */
 	GRALLOC_USAGE_GOOGLE_IP_MFC                            = GRALLOC_USAGE_PRIVATE_17,
+	GRALLOC_USAGE_PLACEHOLDER_BUFFER                       = ::pixel::graphics::Usage::PLACEHOLDER_BUFFER,
 
 	/* FaceAuth specific usages. */
 	GS101_GRALLOC_USAGE_TPU_INPUT                          = GRALLOC_USAGE_PRIVATE_5,
