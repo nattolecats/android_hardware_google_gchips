@@ -100,7 +100,7 @@ int mali_gralloc_derive_format_and_size(buffer_descriptor_t * const bufDescripto
 
 int mali_gralloc_buffer_allocate(const gralloc_buffer_descriptor_t *descriptors,
                                  uint32_t numDescriptors, buffer_handle_t *pHandle, bool *shared_backend,
-                                 int fd = -1);
+                                 bool is_dry = false);
 
 int mali_gralloc_buffer_free(buffer_handle_t pHandle);
 
