@@ -42,8 +42,6 @@
 #define SZ_4K 0x00001000
 #define SZ_2M 0x00200000
 
-#define DRY_BUF_SHARE_ATTR_IDX 0
-
 /*
  * Maximum number of pixel format planes.
  * Plane [0]: Single plane formats (inc. RGB, YUV) and Y
@@ -259,7 +257,6 @@ struct private_handle_t
 	 * to the number of fds.
 	 */
 	static const int sMagic = 0x3141592;
-	bool is_dry = false;
 
 	private_handle_t(
 		int _flags,
@@ -268,7 +265,7 @@ struct private_handle_t
 		int _fds[MAX_FDS], int _fd_count,
 		int _req_format, uint64_t _alloc_format,
 		int _width, int _height, uint64_t _stride,
-		uint64_t _layer_count, plane_info_t _plane_info[MAX_PLANES], bool _is_dry = false)
+		uint64_t _layer_count, plane_info_t _plane_info[MAX_PLANES])
 	    : private_handle_t()
 	{
 		flags = _flags;
@@ -282,8 +279,7 @@ struct private_handle_t
 		alloc_format = _alloc_format;
 		layer_count = _layer_count;
 		version = sizeof(native_handle);
-		is_dry = _is_dry;
-		set_numfds(is_dry ? 0 : fd_count);
+		set_numfds(fd_count);
 		memcpy(plane_info, _plane_info, sizeof(plane_info_t) * MAX_PLANES);
 
 		if (_fds)
@@ -354,7 +350,6 @@ struct private_handle_t
 
 	int get_share_attr_fd_index() const
 	{
-		if (is_dry) return DRY_BUF_SHARE_ATTR_IDX;
 		/* share_attr can be at idx 1 to MAX_FDS */
 		if (fd_count <= 0 || fd_count > MAX_FDS)
 			return -1;
@@ -364,8 +359,6 @@ struct private_handle_t
 
 	int get_share_attr_fd() const
 	{
-		if (is_dry) return fds[DRY_BUF_SHARE_ATTR_IDX];
-
 		int idx = get_share_attr_fd_index();
 
 		if (idx <= 0)
@@ -451,6 +444,6 @@ struct private_handle_t
 
 // The size of private_handle_t is calculated manually. This check ensures that private_handle_t has
 // the same layout for 32-bit and 64-bit processes.
-static_assert(sizeof(private_handle_t) == 336);
+static_assert(sizeof(private_handle_t) == 328);
 
 #endif /* MALI_GRALLOC_BUFFER_H_ */

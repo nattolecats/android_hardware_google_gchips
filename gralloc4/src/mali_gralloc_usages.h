@@ -27,7 +27,6 @@
  * is not present.
  */
 
-
 #include <aidl/android/hardware/graphics/common/BufferUsage.h>
 #include <android/hardware/graphics/common/1.2/types.h>
 #include <pixel-gralloc/usage.h>
@@ -79,7 +78,7 @@ typedef enum
 	GRALLOC_USAGE_GOOGLE_IP_BW                             = GRALLOC_USAGE_PRIVATE_16, /* Alias to BO */
 	GRALLOC_USAGE_GOOGLE_IP_BIG                            = GRALLOC_USAGE_PRIVATE_16, /* Alias to BO/BW */
 	GRALLOC_USAGE_GOOGLE_IP_MFC                            = GRALLOC_USAGE_PRIVATE_17,
-	GRALLOC_USAGE_ALLOCATE_DRY                             = ::pixel::graphics::Usage::ALLOCATE_DRY,
+	GRALLOC_USAGE_PLACEHOLDER_BUFFER                       = ::pixel::graphics::Usage::PLACEHOLDER_BUFFER,
 
 	/* FaceAuth specific usages. */
 	GS101_GRALLOC_USAGE_TPU_INPUT                          = GRALLOC_USAGE_PRIVATE_5,
@@ -157,7 +156,6 @@ static const uint64_t VALID_USAGE =
     GRALLOC_USAGE_ROIINFO |                 /* 1U << 52 */
     MALI_GRALLOC_USAGE_AFBC_PADDING |       /* 1U << 53 */
     MALI_GRALLOC_USAGE_FORCE_BACKBUFFER |   /* 1U << 54 */
-    GRALLOC_USAGE_ALLOCATE_DRY |            /* 1U << 28 */
     MALI_GRALLOC_USAGE_NO_AFBC |            /* 1U << 29 */
     0;
 

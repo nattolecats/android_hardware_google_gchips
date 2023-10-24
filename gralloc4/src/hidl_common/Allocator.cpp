@@ -80,11 +80,10 @@ void allocate(const buffer_descriptor_t &bufferDescriptor, uint32_t count, IAllo
 
 	Error error = Error::NONE;
 	int stride = 0;
-	bool is_dry = bufferDescriptor.producer_usage & GRALLOC_USAGE_ALLOCATE_DRY;
-	buffer_descriptor_t *bufDesc = const_cast<buffer_descriptor_t*>(&bufferDescriptor);
-
+	bool use_placeholder = bufferDescriptor.producer_usage & GRALLOC_USAGE_PLACEHOLDER_BUFFER;
 	std::vector<hidl_handle> grallocBuffers;
 	gralloc_buffer_descriptor_t grallocBufferDescriptor[1];
+
 	grallocBufferDescriptor[0] = (gralloc_buffer_descriptor_t)(&bufferDescriptor);
 	grallocBuffers.reserve(count);
 
@@ -103,7 +102,7 @@ void allocate(const buffer_descriptor_t &bufferDescriptor, uint32_t count, IAllo
 		else
 #endif
 		{
-			allocResult = mali_gralloc_buffer_allocate(grallocBufferDescriptor, 1, &tmpBuffer, nullptr, is_dry);
+			allocResult = mali_gralloc_buffer_allocate(grallocBufferDescriptor, 1, &tmpBuffer, nullptr, use_placeholder);
 			if (allocResult != 0)
 			{
 				MALI_GRALLOC_LOGE("%s, buffer allocation failed with %d", __func__, allocResult);
@@ -181,13 +180,6 @@ void allocate(const buffer_descriptor_t &bufferDescriptor, uint32_t count, IAllo
 			}
 
 			munmap(metadata_vaddr, hnd->attr_size);
-
-			/* Must set this to false to ensure that when this
-			 * buffer is passed back to mapper, metadata_fd_idx is
-			 * not 0
-			 */
-			hnd->is_dry = false;
-
 		}
 
 		int tmpStride = 0;

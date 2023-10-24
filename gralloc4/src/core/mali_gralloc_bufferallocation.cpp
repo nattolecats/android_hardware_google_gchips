@@ -1163,7 +1163,7 @@ int mali_gralloc_derive_format_and_size(buffer_descriptor_t * const bufDescripto
 
 int mali_gralloc_buffer_allocate(const gralloc_buffer_descriptor_t *descriptors,
                                  uint32_t numDescriptors, buffer_handle_t *pHandle, bool *shared_backend,
-                                 bool is_dry)
+                                 bool use_placeholder)
 {
 	std::string atrace_log = __FUNCTION__;
 	if (ATRACE_ENABLED()) {
@@ -1202,7 +1202,7 @@ int mali_gralloc_buffer_allocate(const gralloc_buffer_descriptor_t *descriptors,
 	}
 
 	/* Allocate ION backing store memory */
-	err = mali_gralloc_ion_allocate(descriptors, numDescriptors, pHandle, &shared, is_dry);
+	err = mali_gralloc_ion_allocate(descriptors, numDescriptors, pHandle, &shared, use_placeholder);
 	if (err < 0)
 	{
 		return err;
