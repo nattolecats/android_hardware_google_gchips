@@ -215,7 +215,7 @@ static Error lockBuffer(buffer_handle_t bufferHandle,
 
 	void* data = nullptr;
 	if (mali_gralloc_lock(bufferHandle, cpuUsage, accessRegion.left, accessRegion.top, accessRegion.width,
-	                      accessRegion.height, &data) < 0)
+	                      accessRegion.height, &data) != 0)
 	{
 		return Error::BAD_VALUE;
 	}
