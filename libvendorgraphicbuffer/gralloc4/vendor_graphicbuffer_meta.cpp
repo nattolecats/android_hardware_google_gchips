@@ -25,6 +25,7 @@
 #include "mali_gralloc_formats.h"
 #include "hidl_common/SharedMetadata.h"
 #include "hidl_common/SharedMetadata_struct.h"
+#include "hidl_common/hidl_common.h"
 #include "exynos_format.h"
 
 #include <pixel-gralloc/metadata.h>
