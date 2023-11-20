@@ -212,8 +212,10 @@ static Error lockBuffer(buffer_handle_t bufferHandle,
 	}
 
 	void* data = nullptr;
-	const int gralloc_err = mali_gralloc_lock(bufferHandle, cpuUsage, accessRegion.left, accessRegion.top,
-	                                          accessRegion.right, accessRegion.bottom, &data);
+	const int gralloc_err =
+		mali_gralloc_lock(bufferHandle, cpuUsage, accessRegion.left, accessRegion.top,
+				  accessRegion.right - accessRegion.left,
+				  accessRegion.bottom - accessRegion.top, &data);
 	const Error lock_err = grallocErrorToMapperError(gralloc_err);
 
 	if(Error::NONE == lock_err)
