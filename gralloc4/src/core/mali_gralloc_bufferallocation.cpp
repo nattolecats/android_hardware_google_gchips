@@ -30,7 +30,6 @@
 
 #include "mali_gralloc_bufferallocation.h"
 #include "allocator/mali_gralloc_ion.h"
-#include "allocator/mali_gralloc_shared_memory.h"
 #include "mali_gralloc_buffer.h"
 #include "mali_gralloc_bufferdescriptor.h"
 #include "mali_gralloc_log.h"
@@ -49,6 +48,7 @@
 
 /* IP-specific align values */
 #define GPU_BYTE_ALIGN_DEFAULT 64
+#define BIG_BYTE_ALIGN_DEFAULT 64
 #ifdef SOC_ZUMA
 #define CAMERA_RAW_BUFFER_BYTE_ALIGN 32
 #endif
@@ -246,6 +246,7 @@ void init_afbc(uint8_t *buf, const uint64_t alloc_format,
                const bool is_multi_plane,
                const int w, const int h)
 {
+	ATRACE_CALL();
 	const bool is_tiled = ((alloc_format & MALI_GRALLOC_INTFMT_AFBC_TILED_HEADERS)
 	                         == MALI_GRALLOC_INTFMT_AFBC_TILED_HEADERS);
 	const uint32_t n_headers = (w * h) / AFBC_PIXELS_PER_BLOCK;
@@ -576,7 +577,7 @@ static void calc_allocation_size(const int width,
 		else
 		{
 			assert((plane_info[plane].alloc_width * format.bpp[plane]) % 8 == 0);
-			plane_info[plane].byte_stride = (plane_info[plane].alloc_width * format.bpp[plane]) / 8;
+			plane_info[plane].byte_stride = (static_cast<uint64_t>(plane_info[plane].alloc_width) * format.bpp[plane]) / 8;
 
 			/*
 			 * Align byte stride (uncompressed allocations only).
@@ -621,6 +622,11 @@ static void calc_allocation_size(const int width,
 				hw_align = std::max(hw_align, static_cast<uint16_t>(CAMERA_RAW_BUFFER_BYTE_ALIGN));
 			}
 #endif
+
+			if (has_BIG_usage) {
+				assert(has_hw_usage);
+				hw_align = lcm(hw_align, static_cast<uint16_t>(BIG_BYTE_ALIGN_DEFAULT));
+			}
 
 			uint32_t cpu_align = 0;
 			if (has_cpu_usage && format.id != MALI_GRALLOC_FORMAT_INTERNAL_RAW10) {
@@ -978,6 +984,7 @@ static int prepare_descriptor_exynos_formats(
 
 int mali_gralloc_derive_format_and_size(buffer_descriptor_t * const bufDescriptor)
 {
+	ATRACE_CALL();
 	alloc_type_t alloc_type{};
 
 	int alloc_width = bufDescriptor->width;
@@ -1121,7 +1128,16 @@ int mali_gralloc_buffer_allocate(const gralloc_buffer_descriptor_t *descriptors,
                                  uint32_t numDescriptors, buffer_handle_t *pHandle, bool *shared_backend,
                                  int fd)
 {
-	ATRACE_CALL();
+	std::string atrace_log = __FUNCTION__;
+	if (ATRACE_ENABLED()) {
+		buffer_descriptor_t * const bufDescriptor = (buffer_descriptor_t *)(descriptors[0]);
+		std::stringstream ss;
+		ss << __FUNCTION__ << "(f=0x" << std::hex << bufDescriptor->hal_format << ", u=0x" <<
+			bufDescriptor->producer_usage << ", w=" << std::dec << bufDescriptor->width << ", h=" << bufDescriptor->height << ")";
+		atrace_log = ss.str();
+	}
+	ATRACE_NAME(atrace_log.c_str());
+
 	bool shared = false;
 	uint64_t backing_store_id = 0x0;
 	int err;
@@ -1199,8 +1215,8 @@ int mali_gralloc_buffer_free(buffer_handle_t pHandle)
 		return -1;
 	}
 
-	gralloc_shared_memory_free(hnd);
-	mali_gralloc_ion_free(hnd);
+	native_handle_close(hnd);
+	native_handle_delete(hnd);
 
 	return 0;
 }

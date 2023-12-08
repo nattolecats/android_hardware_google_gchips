@@ -22,7 +22,6 @@ package {
 cc_library_shared {
 	name: "libvendorgraphicbuffer",
 	srcs: [
-		"gralloc4/vendor_graphicbuffer_mapper.cpp",
 		"gralloc4/vendor_graphicbuffer_meta.cpp",
 	],
 	shared_libs: [
@@ -44,6 +43,7 @@ cc_library_shared {
 	],
 	header_libs: [
 		"libgralloc_headers",
+		"pixel-gralloc-headers",
 	],
 	include_dirs: [
 		"hardware/google/gchips/include",

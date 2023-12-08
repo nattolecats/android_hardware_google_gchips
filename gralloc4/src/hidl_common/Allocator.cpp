@@ -20,14 +20,13 @@
 
 #include <utils/Trace.h>
 
-#include "SharedMetadata.h"
 #include "Allocator.h"
 #include "core/mali_gralloc_bufferallocation.h"
 #include "core/mali_gralloc_bufferdescriptor.h"
 #include "core/format_info.h"
 #include "allocator/mali_gralloc_ion.h"
-#include "allocator/mali_gralloc_shared_memory.h"
 #include "gralloc_priv.h"
+#include "SharedMetadata.h"
 
 namespace arm
 {
@@ -99,29 +98,27 @@ void allocate(const buffer_descriptor_t &bufferDescriptor, uint32_t count, IAllo
 			mali_gralloc_ion_allocate_attr(hnd);
 
 			/* TODO: error check for failure */
-			hnd->attr_base = mmap(nullptr, hnd->attr_size, PROT_READ | PROT_WRITE,
+			void* metadata_vaddr = mmap(nullptr, hnd->attr_size, PROT_READ | PROT_WRITE,
 					MAP_SHARED, hnd->get_share_attr_fd(), 0);
 
-			memset(hnd->attr_base, 0, hnd->attr_size);
+			memset(metadata_vaddr, 0, hnd->attr_size);
 
-			mapper::common::shared_metadata_init(hnd->attr_base, bufferDescriptor.name);
+			mapper::common::shared_metadata_init(metadata_vaddr, bufferDescriptor.name);
 
 			const uint32_t base_format = bufferDescriptor.alloc_format & MALI_GRALLOC_INTFMT_FMT_MASK;
 			const uint64_t usage = bufferDescriptor.consumer_usage | bufferDescriptor.producer_usage;
 			android_dataspace_t dataspace;
 			get_format_dataspace(base_format, usage, hnd->width, hnd->height, &dataspace);
 
-			mapper::common::set_dataspace(hnd, static_cast<mapper::common::Dataspace>(dataspace));
+			// TODO: set_dataspace API in mapper expects a buffer to be first imported before it can set the dataspace
+			{
+				using mapper::common::shared_metadata;
+				using mapper::common::aligned_optional;
+				using mapper::common::Dataspace;
+				(static_cast<shared_metadata*>(metadata_vaddr))->dataspace = aligned_optional(static_cast<Dataspace>(dataspace));
+			}
 
-			/*
-			 * We need to set attr_base to MAP_FAILED before the HIDL callback
-			 * to avoid sending an invalid pointer to the client process.
-			 *
-			 * hnd->attr_base = mmap(...);
-			 * hidl_callback(hnd); // client receives hnd->attr_base = <dangling pointer>
-			 */
-			munmap(hnd->attr_base, hnd->attr_size);
-			hnd->attr_base = 0;
+			munmap(metadata_vaddr, hnd->attr_size);
 		}
 
 		int tmpStride = 0;

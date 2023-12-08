@@ -76,7 +76,6 @@ arm_gralloc_allocator_cc_defaults {
 	},
 	srcs: [
 		"mali_gralloc_ion.cpp",
-		"mali_gralloc_shared_memory.cpp",
 	],
 	static_libs: [
 		"libarect",

@@ -28,9 +28,8 @@
 #include "exynos_format.h"
 #include "mali_gralloc_formats.h"
 
-#if 0
-#include "aidl/arm/graphics/ArmMetadataType.h"
-#endif
+#include <pixel-gralloc/metadata.h>
+
 #include <vector>
 
 namespace arm
@@ -387,67 +386,22 @@ static android::status_t get_plane_layouts(const private_handle_t *handle, std::
 	return android::OK;
 }
 
-#if 0
-static android::status_t get_plane_fds(const private_handle_t *hnd, std::vector<int64_t> *fds)
-{
-	const int num_planes = get_num_planes(hnd);
+static hidl_vec<uint8_t> encodePointer(void* ptr) {
+	constexpr uint8_t kPtrSize = sizeof(void*);
 
-	fds->resize(num_planes, static_cast<int64_t>(hnd->share_fd));
+	hidl_vec<uint8_t> output(kPtrSize);
+	std::memcpy(output.data(), &ptr, kPtrSize);
 
-	return android::OK;
+	return output;
 }
-
-/* Encode the number of fds as an int64_t followed by the int64_t fds themselves */
-static android::status_t encodeArmPlaneFds(const std::vector<int64_t>& fds, hidl_vec<uint8_t>* output)
-{
-	int64_t n_fds = fds.size();
-
-	output->resize((n_fds + 1) * sizeof(int64_t));
-
-	memcpy(output->data(), &n_fds, sizeof(n_fds));
-	memcpy(output->data() + sizeof(n_fds), fds.data(), sizeof(int64_t) * n_fds);
-
-	return android::OK;
-}
-
-/* TODO GPUCORE-22819 Move to test code */
-android::status_t decodeArmPlaneFds(hidl_vec<uint8_t>& input, std::vector<int64_t>* fds)
-{
-	int64_t size = 0;
-
-	memcpy(input.data(), &size, sizeof(int64_t));
-	if (size < 0)
-	{
-		return android::BAD_VALUE;
-	}
-
-	fds->resize(size);
-
-	uint8_t *tmp = input.data() + sizeof(int64_t);
-	memcpy(fds->data(), tmp, sizeof(int64_t) * size);
-
-	return android::OK;
-}
-
-static bool isArmMetadataType(const MetadataType& metadataType)
-{
-	return metadataType.name == GRALLOC_ARM_METADATA_TYPE_NAME;
-}
-
-static ArmMetadataType getArmMetadataTypeValue(const MetadataType& metadataType) {
-	return static_cast<ArmMetadataType>(metadataType.value);
-}
-#endif
 
 void get_metadata(const private_handle_t *handle, const IMapper::MetadataType &metadataType, IMapper::get_cb hidl_cb)
 {
-	/* This will hold the metadata that is returned. */
+	android::status_t err = android::OK;
 	hidl_vec<uint8_t> vec;
 
 	if (android::gralloc4::isStandardMetadataType(metadataType))
 	{
-		android::status_t err = android::OK;
-
 		switch (android::gralloc4::getStandardMetadataTypeValue(metadataType))
 		{
 		case StandardMetadataType::BUFFER_ID:
@@ -614,38 +568,32 @@ void get_metadata(const private_handle_t *handle, const IMapper::MetadataType &m
 		default:
 			err = android::BAD_VALUE;
 		}
-		hidl_cb((err) ? Error::UNSUPPORTED : Error::NONE, vec);
 	}
-	/* TODO: either remove or add support for get_plane_fds */
-#if 0
-	else if (isArmMetadataType(metadataType))
-	{
-		android::status_t err = android::OK;
-
-		switch (getArmMetadataTypeValue(metadataType))
-		{
-		case ArmMetadataType::PLANE_FDS:
-		{
-			std::vector<int64_t> fds;
-
-			err = get_plane_fds(handle, &fds);
-			if (!err)
+	else if (metadataType.name == ::pixel::graphics::kPixelMetadataTypeName) {
+		switch (static_cast<::pixel::graphics::MetadataType>(metadataType.value)) {
+			case ::pixel::graphics::MetadataType::VIDEO_HDR:
+				vec = encodePointer(get_video_hdr(handle));
+				break;
+			case ::pixel::graphics::MetadataType::VIDEO_ROI:
 			{
-				err = encodeArmPlaneFds(fds, &vec);
+				auto roi = get_video_roiinfo(handle);
+				if (roi == nullptr) {
+					err = android::BAD_VALUE;
+				} else {
+					vec = encodePointer(roi);
+				}
+				break;
 			}
-			break;
+			default:
+				err = android::BAD_VALUE;
 		}
-		default:
-			err = android::BAD_VALUE;
-		}
-		hidl_cb((err) ? Error::UNSUPPORTED : Error::NONE, vec);
 	}
-#endif
 	else
 	{
-		/* If known vendor type, return it */
-		hidl_cb(Error::UNSUPPORTED, vec);
+		err = android::BAD_VALUE;
 	}
+
+	hidl_cb((err) ? Error::UNSUPPORTED : Error::NONE, vec);
 }
 
 Error set_metadata(const private_handle_t *handle, const IMapper::MetadataType &metadataType,

@@ -245,14 +245,6 @@ static Error unlockBuffer(buffer_handle_t bufferHandle,
 	}
 
 	auto private_handle = private_handle_t::dynamicCast(bufferHandle);
-#if 0
-	if (!private_handle->cpu_write && !private_handle->cpu_read)
-	{
-		MALI_GRALLOC_LOGW("Attempt to call unlock*() on an unlocked buffer (%p)", bufferHandle);
-
-		/* TODO: handle simulatneous locks differently. May be keep a global lock count per buffer? */
-	}
-#endif
 
 	const int result = mali_gralloc_unlock(bufferHandle);
 	if (result)
@@ -294,15 +286,6 @@ void importBuffer(const hidl_handle& rawHandle, IMapper::importBuffer_cb hidl_cb
 	}
 
 	auto *private_handle = static_cast<private_handle_t *>(bufferHandle);
-	private_handle->attr_base = mmap(nullptr, private_handle->attr_size, PROT_READ | PROT_WRITE,
-	                                 MAP_SHARED, private_handle->get_share_attr_fd(), 0);
-	if (private_handle->attr_base == MAP_FAILED)
-	{
-		native_handle_close(bufferHandle);
-		native_handle_delete(bufferHandle);
-		hidl_cb(Error::NO_RESOURCES, nullptr);
-		return;
-	}
 
 	if (gRegisteredHandles->add(bufferHandle) == false)
 	{
@@ -330,16 +313,6 @@ Error freeBuffer(void* buffer)
 	{
 		MALI_GRALLOC_LOGE("Invalid buffer handle %p to freeBuffer", buffer);
 		return Error::BAD_BUFFER;
-	}
-
-	{
-		auto *private_handle = static_cast<private_handle_t *>(bufferHandle);
-		int ret = munmap(private_handle->attr_base, private_handle->attr_size);
-		if (ret < 0)
-		{
-			MALI_GRALLOC_LOGW("munmap: %s", strerror(errno));
-		}
-		private_handle->attr_base = MAP_FAILED;
 	}
 
 	const Error status = unregisterBuffer(bufferHandle);
@@ -773,7 +746,13 @@ void getReservedRegion(void *buffer, IMapper::getReservedRegion_cb hidl_cb)
 		hidl_cb(Error::BAD_BUFFER, 0, 0);
 		return;
 	}
-	void *reserved_region = static_cast<std::byte *>(handle->attr_base)
+
+	auto metadata_addr_oe = mali_gralloc_reference_get_metadata_addr(handle);
+	if (!metadata_addr_oe.has_value()) {
+		hidl_cb(Error::BAD_BUFFER, 0, 0);
+	}
+
+	void *reserved_region = static_cast<std::byte *>(metadata_addr_oe.value())
 	    + mapper::common::shared_metadata_size();
 	hidl_cb(Error::NONE, reserved_region, handle->reserved_region_size);
 }
