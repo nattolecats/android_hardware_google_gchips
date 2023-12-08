@@ -1502,7 +1502,7 @@ uint64_t mali_gralloc_select_format(const uint64_t req_format,
 	/* Reject if usage specified is outside white list of valid usages. */
 	if (type != MALI_GRALLOC_FORMAT_TYPE_INTERNAL && (usage & (~VALID_USAGE)) != 0)
 	{
-		MALI_GRALLOC_LOGE("Invalid usage specified: %s 0x%" PRIx64, describe_usage(usage).c_str(), usage);
+		MALI_GRALLOC_LOGW("Invalid usage specified: %s 0x%" PRIx64, describe_usage(usage).c_str(), usage);
 	}
 
 	/* TODO: Make a function for finding formats that should be allocated as the request format */
