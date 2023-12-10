@@ -236,10 +236,8 @@ struct private_handle_t
 	// locally mapped shared attribute area
 
 	int ion_handles[MAX_BUFFER_FDS];
-	uint64_t bases[MAX_BUFFER_FDS];
 	uint64_t alloc_sizes[MAX_BUFFER_FDS];
 
-	void *attr_base __attribute__((aligned (8))) DEFAULT_INITIALIZER(nullptr);
 	off_t offset    __attribute__((aligned (8))) DEFAULT_INITIALIZER(0);
 
 	/* Size of the attribute shared region in bytes. */
@@ -286,11 +284,12 @@ struct private_handle_t
 
 		if (_fds)
 			memcpy(fds, _fds, sizeof(fds));
+		else
+			memset(fds, -1, sizeof(fds));
 
 		if (_alloc_sizes)
 			memcpy(alloc_sizes, _alloc_sizes, sizeof(alloc_sizes));
 
-		memset(bases, 0, sizeof(bases));
 		memset(ion_handles, 0, sizeof(ion_handles));
 	}
 
@@ -404,7 +403,6 @@ struct private_handle_t
 			"alloc_format(0x%" PRIx64 ") "
 			"alloc_sizes(%" PRIu64 " %" PRIu64 " %" PRIu64 ") "
 			"layer_count(%d) "
-			"bases(%p %p %p %p) "
 			"\n",
 			str,
 			numInts, numFds, fd_count,
@@ -419,8 +417,7 @@ struct private_handle_t
 			plane_info[2].size, plane_info[2].byte_stride, plane_info[2].alloc_width, plane_info[2].alloc_height,
 			alloc_format,
 			alloc_sizes[0], alloc_sizes[1], alloc_sizes[2],
-			layer_count,
-			(void*)bases[0], (void*)bases[1], (void*)bases[2], attr_base
+			layer_count
 		);
 	}
 
