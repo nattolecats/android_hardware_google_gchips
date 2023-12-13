@@ -154,12 +154,13 @@ ndk::ScopedAStatus GrallocAllocator::allocate2(
     return ndk::ScopedAStatus::ok();
 }
 
+// TODO(b/315883761): isSupported should return false for unknown-to-HAL usage
 ndk::ScopedAStatus GrallocAllocator::isSupported(
         const AidlAllocator::BufferDescriptorInfo& descriptor, bool* result) {
     buffer_descriptor_t bufferDescriptor = decodeBufferDescriptorInfo(descriptor);
 
     int isBufferDescriptorSupported = arm::allocator::common::isSupported(&bufferDescriptor);
-    *result = isBufferDescriptorSupported;
+    *result = (isBufferDescriptorSupported == 0);
 
     if (isBufferDescriptorSupported) {
         MALI_GRALLOC_LOGV("Allocation for the given description will not succeed. error %d",
