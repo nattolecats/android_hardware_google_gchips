@@ -30,7 +30,6 @@
 #include <utils/Trace.h>
 
 #include <linux/dma-buf.h>
-#include <linux/memfd.h>
 #include <vector>
 #include <sys/ioctl.h>
 
@@ -223,12 +222,7 @@ int alloc_from_dmabuf_heap(uint64_t usage, size_t size, const std::string& buffe
 	std::stringstream tag;
 	tag << "heap: " << heap_name << ", bytes: " << size;
 	ATRACE_NAME(tag.str().c_str());
-	int shared_fd = -1;
-
-	// memfd requires matching sepolicy allowing r/w access to tmpfs.
-	if (use_placeholder) shared_fd = memfd_create(heap_name.c_str(), 0);
-	else shared_fd = get_allocator().Alloc(heap_name, size, 0);
-
+	int shared_fd = get_allocator().Alloc(heap_name, size, 0);
 	if (shared_fd < 0)
 	{
 		ALOGE("Allocation failed for heap %s error: %d\n", heap_name.c_str(), shared_fd);
