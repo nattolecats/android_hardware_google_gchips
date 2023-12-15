@@ -17,7 +17,7 @@ include $(CLEAR_VARS)
 
 LOCAL_PRELINK_MODULE := false
 LOCAL_SHARED_LIBRARIES := liblog libutils libcutils libhardware
-LOCAL_HEADER_LIBRARIES += generated_kernel_headers
+LOCAL_HEADER_LIBRARIES += device_kernel_headers
 LOCAL_PROPRIETARY_MODULE := true
 
 LOCAL_CFLAGS += -DEXYNOS_PLATFORM_ON_ANDROID
