@@ -3,7 +3,7 @@ package {
 }
 
 cc_binary {
-    name: "android.hardware.graphics.allocator-V2-service",
+    name: "android.hardware.graphics.allocator-V1-service",
     proprietary: true,
     relative_install_path: "hw",
     srcs: [
@@ -17,7 +17,7 @@ cc_binary {
         "libgralloc_headers",
     ],
     shared_libs: [
-        "android.hardware.graphics.allocator-V2-ndk",
+        "android.hardware.graphics.allocator-V1-ndk",
         "android.hardware.graphics.allocator-aidl-impl",
         "libbinder_ndk",
         "liblog",
