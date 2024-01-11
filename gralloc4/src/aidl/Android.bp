@@ -10,7 +10,7 @@ cc_library_shared {
         "arm_gralloc_api_4x_defaults",
     ],
     shared_libs: [
-        "android.hardware.graphics.allocator-V2-ndk",
+        "android.hardware.graphics.allocator-V1-ndk",
         "android.hardware.graphics.allocator@4.0",
         "android.hardware.graphics.mapper@4.0",
         "libbinder_ndk",
