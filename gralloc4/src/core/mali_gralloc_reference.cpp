@@ -20,6 +20,7 @@
 
 #include <android-base/thread_annotations.h>
 #include <hardware/gralloc1.h>
+#include <unistd.h>
 
 #include <algorithm>
 #include <map>
@@ -62,19 +63,25 @@ private:
         private_handle_t *hnd =
                 static_cast<private_handle_t *>(const_cast<native_handle_t *>(handle));
 
+        if (hnd->fd_count < 0 || hnd->fd_count > MAX_FDS) {
+            MALI_GRALLOC_LOGE("%s failed: invalid number of fds (%d)", __func__, hnd->fd_count);
+            return false;
+        }
+
         int valid_fd_count = std::find(hnd->fds, hnd->fds + MAX_FDS, -1) - hnd->fds;
         // One fd is reserved for metadata which is not accounted for in fd_count
-        if (hnd->fd_count != valid_fd_count - 1) {
-            MALI_GRALLOC_LOGE("%s failed: count of valid buffer fds does not match fd_count",
-                              __func__);
+        if (hnd->fd_count + 1 != valid_fd_count) {
+            MALI_GRALLOC_LOGE("%s failed: count of valid buffer fds does not match fd_count (%d != "
+                              "%d)",
+                              __func__, hnd->fd_count, valid_fd_count - 1);
             return false;
         }
 
         auto check_pid = [&](int fd, uint64_t allocated_size) -> bool {
             auto size = get_buffer_size(fd);
             auto size_padding = size - (off_t)allocated_size;
-            if ((size != -1) && ((size_padding < 0) || (size_padding > PAGE_SIZE))) {
-                MALI_GRALLOC_LOGE("%s failed: fd (%d) size (%jd) is not within a PAGE_SIZE of "
+            if ((size != -1) && ((size_padding < 0) || (size_padding > getpagesize()))) {
+                MALI_GRALLOC_LOGE("%s failed: fd (%d) size (%jd) is not within a page of "
                                   "expected size (%" PRIx64 ")",
                                   __func__, fd, static_cast<intmax_t>(size), allocated_size);
                 return false;

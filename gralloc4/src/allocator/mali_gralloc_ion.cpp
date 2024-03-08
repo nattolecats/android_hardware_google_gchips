@@ -55,6 +55,7 @@ static const char kDmabufSensorDirectHeapName[] = "sensor_direct_heap";
 static const char kDmabufFaceauthTpuHeapName[] = "faceauth_tpu-secure";
 static const char kDmabufFaceauthImgHeapName[] = "faimg-secure";
 static const char kDmabufFaceauthRawImgHeapName[] = "farawimg-secure";
+static const char kDmabufFaceauthEvalHeapName[] = "faeval-secure";
 static const char kDmabufFaceauthPrevHeapName[] = "faprev-secure";
 static const char kDmabufFaceauthModelHeapName[] = "famodel-secure";
 static const char kDmabufVframeSecureHeapName[] = "vframe-secure";
@@ -87,9 +88,14 @@ std::string select_dmabuf_heap(uint64_t usage)
 		std::string   name;
 	};
 
-	static const std::array<HeapSpecifier, 7> exact_usage_heaps =
+	static const std::array<HeapSpecifier, 8> exact_usage_heaps =
 	{{
 		// Faceauth heaps
+		{ // faceauth_evaluation_heap - used mostly on debug builds
+			GRALLOC_USAGE_PROTECTED | GRALLOC_USAGE_HW_CAMERA_WRITE | GRALLOC_USAGE_HW_CAMERA_READ |
+			GS101_GRALLOC_USAGE_FACEAUTH_RAW_EVAL,
+			kDmabufFaceauthEvalHeapName
+		},
 		{ // isp_image_heap
 			GRALLOC_USAGE_PROTECTED | GRALLOC_USAGE_HW_CAMERA_WRITE | GS101_GRALLOC_USAGE_TPU_INPUT,
 			kDmabufFaceauthImgHeapName
@@ -200,18 +206,22 @@ std::string select_dmabuf_heap(uint64_t usage)
 	return "";
 }
 
-int alloc_from_dmabuf_heap(uint64_t usage, size_t size, const std::string& buffer_name = "")
+int alloc_from_dmabuf_heap(uint64_t usage, size_t size, const std::string& buffer_name = "", bool use_placeholder = false)
 {
 	ATRACE_CALL();
 	if (size == 0) { return -1; }
 
-	auto heap_name = select_dmabuf_heap(usage);
+	auto heap_name = use_placeholder ? "system" : select_dmabuf_heap(usage);
+	if (use_placeholder) size = 1;
+
 	if (heap_name.empty()) {
 			MALI_GRALLOC_LOGW("No heap found for usage: %s (0x%" PRIx64 ")", describe_usage(usage).c_str(), usage);
 			return -EINVAL;
 	}
 
-	ATRACE_NAME(("alloc_from_dmabuf_heap " +  heap_name).c_str());
+	std::stringstream tag;
+	tag << "heap: " << heap_name << ", bytes: " << size;
+	ATRACE_NAME(tag.str().c_str());
 	int shared_fd = get_allocator().Alloc(heap_name, size, 0);
 	if (shared_fd < 0)
 	{
@@ -350,7 +360,7 @@ int mali_gralloc_ion_allocate_attr(private_handle_t *hnd)
  */
 int mali_gralloc_ion_allocate(const gralloc_buffer_descriptor_t *descriptors,
                               uint32_t numDescriptors, buffer_handle_t *pHandle,
-                              bool *shared_backend, int ion_fd)
+                              bool *shared_backend, bool use_placeholder)
 {
 	ATRACE_CALL();
 	GRALLOC_UNUSED(shared_backend);
@@ -394,11 +404,7 @@ int mali_gralloc_ion_allocate(const gralloc_buffer_descriptor_t *descriptors,
 		{
 			int& fd = hnd->fds[fidx];
 
-			if (ion_fd >= 0 && fidx == 0) {
-				fd = ion_fd;
-			} else {
-				fd = alloc_from_dmabuf_heap(usage, bufDescriptor->alloc_sizes[fidx], bufDescriptor->name);
-			}
+			fd = alloc_from_dmabuf_heap(usage, bufDescriptor->alloc_sizes[fidx], bufDescriptor->name, use_placeholder);
 
 			if (fd < 0)
 			{
@@ -410,6 +416,8 @@ int mali_gralloc_ion_allocate(const gralloc_buffer_descriptor_t *descriptors,
 			hnd->incr_numfds(1);
 		}
 	}
+
+	if (use_placeholder) return 0;
 
 #if defined(GRALLOC_INIT_AFBC) && (GRALLOC_INIT_AFBC == 1)
 	ATRACE_NAME("AFBC init block");

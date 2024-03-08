@@ -27,12 +27,12 @@
  * is not present.
  */
 
-
+#include <aidl/android/hardware/graphics/common/BufferUsage.h>
 #include <android/hardware/graphics/common/1.2/types.h>
+#include <pixel-gralloc/usage.h>
+
 /* BufferUsage is not defined in 1.2/types.h as there are no changes from previous version */
 namespace hidl_common = android::hardware::graphics::common::V1_1;
-
-#include <aidl/android/hardware/graphics/common/BufferUsage.h>
 namespace aidl_common = aidl::android::hardware::graphics::common;
 
 /* Local macro definitions to emulate Gralloc 1.0 usage interface */
@@ -78,11 +78,14 @@ typedef enum
 	GRALLOC_USAGE_GOOGLE_IP_BW                             = GRALLOC_USAGE_PRIVATE_16, /* Alias to BO */
 	GRALLOC_USAGE_GOOGLE_IP_BIG                            = GRALLOC_USAGE_PRIVATE_16, /* Alias to BO/BW */
 	GRALLOC_USAGE_GOOGLE_IP_MFC                            = GRALLOC_USAGE_PRIVATE_17,
+	GRALLOC_USAGE_PLACEHOLDER_BUFFER                       = ::pixel::graphics::Usage::PLACEHOLDER_BUFFER,
 
 	/* FaceAuth specific usages. */
 	GS101_GRALLOC_USAGE_TPU_INPUT                          = GRALLOC_USAGE_PRIVATE_5,
 	GS101_GRALLOC_USAGE_TPU_OUTPUT                         = GRALLOC_USAGE_PRIVATE_3,
 	GS101_GRALLOC_USAGE_CAMERA_STATS                       = GRALLOC_USAGE_PRIVATE_2,
+
+	GS101_GRALLOC_USAGE_FACEAUTH_RAW_EVAL                  = ::pixel::graphics::Usage::FACEAUTH_RAW_EVAL,
 } mali_gralloc_usage_type;
 
 #define GRALLOC_USAGE_SW_WRITE_RARELY static_cast<uint64_t>(hidl_common::BufferUsage::CPU_WRITE_RARELY)
@@ -111,6 +114,9 @@ typedef enum
 #define GRALLOC_USAGE_SENSOR_DIRECT_DATA static_cast<uint64_t>(hidl_common::BufferUsage::SENSOR_DIRECT_DATA)
 #define GRALLOC_USAGE_GPU_DATA_BUFFER static_cast<uint64_t>(hidl_common::BufferUsage::GPU_DATA_BUFFER)
 #define GRALLOC_USAGE_FRONT_BUFFER static_cast<uint64_t>(aidl_common::BufferUsage::FRONT_BUFFER)
+
+#define UNSUPPORTED_MALI_GRALLOC_USAGE_CUBE_MAP static_cast<uint64_t>(aidl_common::BufferUsage::GPU_CUBE_MAP)
+#define UNSUPPORTED_MALI_GRALLOC_USAGE_MIPMAP_COMPLETE static_cast<uint64_t>(aidl_common::BufferUsage::GPU_MIPMAP_COMPLETE)
 
 
 /* Originally (Gralloc 0.x), Android did not provide an explicit DECODER usage. This was rectified in Android N-MR1/7.1
@@ -147,6 +153,7 @@ static const uint64_t VALID_USAGE =
 
     GS101_GRALLOC_USAGE_TPU_INPUT |         /* 1U << 62 */
     GS101_GRALLOC_USAGE_TPU_OUTPUT |        /* 1U << 31 */
+    GS101_GRALLOC_USAGE_FACEAUTH_RAW_EVAL | /* 1U << 63 */
     GS101_GRALLOC_USAGE_CAMERA_STATS |      /* 1U << 30 */
 
     GRALLOC_USAGE_ROIINFO |                 /* 1U << 52 */

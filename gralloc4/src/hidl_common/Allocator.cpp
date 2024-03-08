@@ -18,7 +18,13 @@
 
 #define ATRACE_TAG ATRACE_TAG_GRAPHICS
 
+#include <array>
+#include <atomic>
+#include <chrono>
 #include <utils/Trace.h>
+#include <shared_mutex>
+#include <sstream>
+#include <sys/stat.h>
 
 #include "Allocator.h"
 #include "core/mali_gralloc_bufferallocation.h"
@@ -35,6 +41,35 @@ namespace allocator
 namespace common
 {
 
+struct BufferDetails {
+	std::string name;
+	uint64_t buffer_id;
+	std::vector<ino_t> inodes;
+	uint64_t format;
+	uint64_t usage;
+	uint32_t width;
+	uint32_t height;
+};
+
+uint64_t total_allocated = 0;
+std::atomic<uint16_t> next_idx = 0;
+
+// There is no atomic rounding off for atomics so next_idx can overflow. allocated_buffers should be
+// a power of 2.
+std::array<BufferDetails, 2048> allocated_buffers;
+std::shared_timed_mutex allocated_buffers_mutex;
+static_assert((allocated_buffers.size() & (allocated_buffers.size() - 1)) == 0);
+
+ino_t get_inode(int fd) {
+	struct stat fd_info;
+	int error = fstat(fd, &fd_info);
+	if (error != 0) {
+		return error;
+	}
+
+	return fd_info.st_ino;
+}
+
 void allocate(const buffer_descriptor_t &bufferDescriptor, uint32_t count, IAllocator::allocate_cb hidl_cb,
               std::function<int(const buffer_descriptor_t *, buffer_handle_t *)> fb_allocator)
 {
@@ -45,6 +80,7 @@ void allocate(const buffer_descriptor_t &bufferDescriptor, uint32_t count, IAllo
 
 	Error error = Error::NONE;
 	int stride = 0;
+	bool use_placeholder = bufferDescriptor.producer_usage & GRALLOC_USAGE_PLACEHOLDER_BUFFER;
 	std::vector<hidl_handle> grallocBuffers;
 	gralloc_buffer_descriptor_t grallocBufferDescriptor[1];
 
@@ -66,7 +102,7 @@ void allocate(const buffer_descriptor_t &bufferDescriptor, uint32_t count, IAllo
 		else
 #endif
 		{
-			allocResult = mali_gralloc_buffer_allocate(grallocBufferDescriptor, 1, &tmpBuffer, nullptr);
+			allocResult = mali_gralloc_buffer_allocate(grallocBufferDescriptor, 1, &tmpBuffer, nullptr, use_placeholder);
 			if (allocResult != 0)
 			{
 				MALI_GRALLOC_LOGE("%s, buffer allocation failed with %d", __func__, allocResult);
@@ -118,6 +154,31 @@ void allocate(const buffer_descriptor_t &bufferDescriptor, uint32_t count, IAllo
 				(static_cast<shared_metadata*>(metadata_vaddr))->dataspace = aligned_optional(static_cast<Dataspace>(dataspace));
 			}
 
+			{
+				ATRACE_NAME("Update dump details");
+				const auto fd_count = hnd->fd_count + 1 /* metadata fd */;
+				std::vector<ino_t> inodes(fd_count);
+				for (size_t idx = 0; idx < fd_count; idx++) {
+					inodes[idx] = get_inode(hnd->fds[idx]);
+				}
+
+				auto idx = next_idx.fetch_add(1);
+				idx %= allocated_buffers.size();
+
+				allocated_buffers_mutex.lock_shared();
+				allocated_buffers[idx] =
+					BufferDetails{bufferDescriptor.name,
+					              hnd->backing_store_id,
+					              inodes,
+					              bufferDescriptor.hal_format,
+					              bufferDescriptor.producer_usage,
+					              bufferDescriptor.width,
+					              bufferDescriptor.height};
+				allocated_buffers_mutex.unlock_shared();
+
+				total_allocated++;
+			}
+
 			munmap(metadata_vaddr, hnd->attr_size);
 		}
 
@@ -155,6 +216,33 @@ void allocate(const buffer_descriptor_t &bufferDescriptor, uint32_t count, IAllo
 	{
 		mali_gralloc_buffer_free(buffer.getNativeHandle());
 	}
+}
+
+const std::string dump() {
+	using namespace std::chrono_literals;
+	if (!allocated_buffers_mutex.try_lock_for(100ms)) {
+		return "";
+	}
+
+	std::stringstream ss;
+	// TODO: Add logs to indicate overflow
+	for (int i = 0; i < std::min(total_allocated, static_cast<uint64_t>(allocated_buffers.size())); i++) {
+		const auto& [name, buffer_id, inodes, format, usage, width, height] = allocated_buffers[i];
+		ss << "buffer_id: " << buffer_id << ", inodes: ";
+		for (auto it = inodes.begin(); it != inodes.end(); it++) {
+			if (it != inodes.begin()) {
+				ss << ",";
+			}
+			ss << static_cast<int>(*it);
+		}
+		ss << ", format: 0x" << std::hex << format << std::dec;
+		ss << ", usage: 0x" << std::hex << usage << std::dec;
+		ss << ", width: " << width << ", height: " << height;
+		ss << ", name: " << name << std::endl;
+	}
+
+	allocated_buffers_mutex.unlock();
+	return ss.str();
 }
 
 } // namespace common

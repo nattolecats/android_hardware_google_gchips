@@ -1,4 +1,3 @@
-
 /*
  * Copyright (C) 2020 Arm Limited.
  * SPDX-License-Identifier: Apache-2.0
@@ -21,62 +20,16 @@ package {
 }
 
 cc_library_headers {
-	name: "libgralloc_headers",
-	vendor: true,
-	host_supported: true,
-	export_include_dirs: [
-		".",
-	],
-	header_libs: [
-		"libsystem_headers",
-	],
-	export_header_lib_headers: [
-		"libsystem_headers",
-	],
-}
-
-cc_library_shared {
-	name: "libGralloc4Wrapper",
-	vendor: true,
-	defaults: [
-		"arm_gralloc_defaults",
-	],
-	srcs: [
-		"libGralloc4Wrapper/wrapper.cpp",
-		"allocator/mali_gralloc_ion.cpp",
-		"core/format_info.cpp",
-		"core/mali_gralloc_formats.cpp",
-		"core/mali_gralloc_bufferallocation.cpp",
-		"core/mali_gralloc_bufferdescriptor.cpp",
-		"core/mali_gralloc_reference.cpp",
-		":libgralloc_hidl_common_shared_metadata",
-	],
-	cflags: [
-		"-DGRALLOC_LIBRARY_BUILD=1",
-		"-Wthread-safety",
-	],
-	static_libs: [
-		"libgralloc_capabilities",
-	],
-	shared_libs: [
-		"liblog",
-		"libcutils",
-		"libutils",
-		"libsync",
-		"libhardware",
-		"libhidlbase",
-		"libhidltransport",
-		"libnativewindow",
-		"android.hardware.graphics.common@1.2",
-		"android.hardware.graphics.common-V4-ndk",
-		"android.hardware.graphics.mapper@4.0",
-		"libdmabufheap",
-		"libgralloctypes",
-		"libdrm",
-	],
-	header_libs: [
-		"google_hal_headers",
-		"device_kernel_headers",
-	],
-	export_include_dirs: ["libGralloc4Wrapper/include"]
+    name: "libgralloc_headers",
+    vendor: true,
+    export_include_dirs: [
+        ".",
+    ],
+    header_libs: [
+        "libsystem_headers",
+        "//hardware/google/graphics/common:pixel-gralloc-headers",
+    ],
+    export_header_lib_headers: [
+        "libsystem_headers",
+    ],
 }

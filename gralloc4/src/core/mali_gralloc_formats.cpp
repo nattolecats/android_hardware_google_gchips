@@ -408,8 +408,8 @@ static uint64_t get_producer_caps(const uint16_t producers)
  */
 void mali_gralloc_adjust_dimensions(const uint64_t alloc_format,
                                     const uint64_t usage,
-                                    int* const width,
-                                    int* const height)
+                                    uint64_t* const width,
+                                    uint64_t* const height)
 {
 	/* Determine producers. */
 	const uint16_t producers = get_producers(usage);
@@ -444,7 +444,7 @@ void mali_gralloc_adjust_dimensions(const uint64_t alloc_format,
 	}
 
 	MALI_GRALLOC_LOGV("%s: alloc_format=(%s 0x%" PRIx64 ") usage=(%s 0x%" PRIx64
-		") alloc_width=%u, alloc_height=%u",
+		") alloc_width=%" PRIu64 ", alloc_height=%" PRIu64 "",
 		__FUNCTION__, format_name(alloc_format), alloc_format, describe_usage(usage).c_str(),
 		usage, *width, *height);
 }
@@ -1502,7 +1502,7 @@ uint64_t mali_gralloc_select_format(const uint64_t req_format,
 	/* Reject if usage specified is outside white list of valid usages. */
 	if (type != MALI_GRALLOC_FORMAT_TYPE_INTERNAL && (usage & (~VALID_USAGE)) != 0)
 	{
-		MALI_GRALLOC_LOGE("Invalid usage specified: %s 0x%" PRIx64, describe_usage(usage).c_str(), usage);
+		MALI_GRALLOC_LOGW("Invalid usage specified: %s 0x%" PRIx64, describe_usage(usage).c_str(), usage);
 	}
 
 	/* TODO: Make a function for finding formats that should be allocated as the request format */

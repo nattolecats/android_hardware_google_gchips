@@ -29,6 +29,7 @@
 #include "mali_gralloc_formats.h"
 
 #include <pixel-gralloc/metadata.h>
+#include <pixel-gralloc/utils.h>
 
 #include <vector>
 
@@ -52,9 +53,13 @@ using aidl::android::hardware::graphics::common::Cta861_3;
 using aidl::arm::graphics::ArmMetadataType;
 #endif
 
-using MetadataType = android::hardware::graphics::mapper::V4_0::IMapper::MetadataType;
+bool isStandardMetadataType(const MetadataType &metadataType) {
+	return !std::strncmp(metadataType.name.c_str(),
+			     GRALLOC4_STANDARD_METADATA_TYPE,
+			     metadataType.name.size());
+}
 
-static int get_num_planes(const private_handle_t *hnd)
+int get_num_planes(const private_handle_t *hnd)
 {
 	if (is_exynos_format(hnd->get_alloc_format()))
 	{
@@ -282,7 +287,7 @@ static std::vector<std::vector<PlaneLayoutComponent>> plane_layout_components_fr
 	return std::vector<std::vector<PlaneLayoutComponent>>(0);
 }
 
-static android::status_t get_plane_layouts(const private_handle_t *handle, std::vector<PlaneLayout> *layouts)
+android::status_t get_plane_layouts(const private_handle_t *handle, std::vector<PlaneLayout> *layouts)
 {
 	const int num_planes = get_num_planes(handle);
 	uint32_t base_format = handle->alloc_format & MALI_GRALLOC_INTFMT_FMT_MASK;
@@ -317,9 +322,9 @@ static android::status_t get_plane_layouts(const private_handle_t *handle, std::
 
 			PlaneLayout layout = {.offsetInBytes = offset,
 				                  .sampleIncrementInBits = sample_increment_in_bits,
-				                  .strideInBytes = handle->plane_info[plane_index].byte_stride,
-				                  .widthInSamples = handle->plane_info[plane_index].alloc_width,
-				                  .heightInSamples = handle->plane_info[plane_index].alloc_height,
+				                  .strideInBytes = static_cast<int64_t>(handle->plane_info[plane_index].byte_stride),
+				                  .widthInSamples = static_cast<int64_t>(handle->plane_info[plane_index].alloc_width),
+				                  .heightInSamples = static_cast<int64_t>(handle->plane_info[plane_index].alloc_height),
 				                  .totalSizeInBytes = plane_size,
 				                  .horizontalSubsampling = (plane_index == 0 ? 1 : format_info.hsub),
 				                  .verticalSubsampling = (plane_index == 0 ? 1 : format_info.vsub),
@@ -371,9 +376,9 @@ static android::status_t get_plane_layouts(const private_handle_t *handle, std::
 
 			PlaneLayout layout = {.offsetInBytes = handle->plane_info[plane_index].offset,
 				                  .sampleIncrementInBits = sample_increment_in_bits,
-				                  .strideInBytes = handle->plane_info[plane_index].byte_stride,
-				                  .widthInSamples = handle->plane_info[plane_index].alloc_width,
-				                  .heightInSamples = handle->plane_info[plane_index].alloc_height,
+				                  .strideInBytes = static_cast<int64_t>(handle->plane_info[plane_index].byte_stride),
+				                  .widthInSamples = static_cast<int64_t>(handle->plane_info[plane_index].alloc_width),
+				                  .heightInSamples = static_cast<int64_t>(handle->plane_info[plane_index].alloc_height),
 				                  .totalSizeInBytes = plane_size,
 				                  .horizontalSubsampling = (plane_index == 0 ? 1 : format_info.hsub),
 				                  .verticalSubsampling = (plane_index == 0 ? 1 : format_info.vsub),
@@ -386,23 +391,23 @@ static android::status_t get_plane_layouts(const private_handle_t *handle, std::
 	return android::OK;
 }
 
-static hidl_vec<uint8_t> encodePointer(void* ptr) {
+static frameworks_vec<uint8_t> encodePointer(void* ptr) {
 	constexpr uint8_t kPtrSize = sizeof(void*);
 
-	hidl_vec<uint8_t> output(kPtrSize);
+	frameworks_vec<uint8_t> output(kPtrSize);
 	std::memcpy(output.data(), &ptr, kPtrSize);
 
 	return output;
 }
 
-void get_metadata(const private_handle_t *handle, const IMapper::MetadataType &metadataType, IMapper::get_cb hidl_cb)
+Error get_metadata(const private_handle_t *handle, const MetadataType &metadataType, std::vector<uint8_t> &outVec)
 {
 	android::status_t err = android::OK;
-	hidl_vec<uint8_t> vec;
+	frameworks_vec<uint8_t> vec;
 
-	if (android::gralloc4::isStandardMetadataType(metadataType))
+	if (isStandardMetadataType(metadataType))
 	{
-		switch (android::gralloc4::getStandardMetadataTypeValue(metadataType))
+		switch (static_cast<StandardMetadataType>(metadataType.value))
 		{
 		case StandardMetadataType::BUFFER_ID:
 			err = android::gralloc4::encodeBufferId(handle->backing_store_id, &vec);
@@ -424,7 +429,7 @@ void get_metadata(const private_handle_t *handle, const IMapper::MetadataType &m
 			err = android::gralloc4::encodeLayerCount(handle->layer_count, &vec);
 			break;
 		case StandardMetadataType::PIXEL_FORMAT_REQUESTED:
-			err = android::gralloc4::encodePixelFormatRequested(static_cast<PixelFormat>(handle->req_format), &vec);
+			err = android::gralloc4::encodePixelFormatRequested(static_cast<hidl::PixelFormat>(handle->req_format), &vec);
 			break;
 		case StandardMetadataType::PIXEL_FORMAT_FOURCC:
 			err = android::gralloc4::encodePixelFormatFourCC(drm_fourcc_from_handle(handle), &vec);
@@ -449,7 +454,7 @@ void get_metadata(const private_handle_t *handle, const IMapper::MetadataType &m
 		{
 			/* This is set to 1 if the buffer has protected content. */
 			const int is_protected =
-			    (((handle->consumer_usage | handle->producer_usage) & BufferUsage::PROTECTED) == 0) ? 0 : 1;
+			    (((handle->consumer_usage | handle->producer_usage) & static_cast<uint64_t>(BufferUsage::PROTECTED)) == 0) ? 0 : 1;
 			err = android::gralloc4::encodeProtectedContent(is_protected, &vec);
 			break;
 		}
@@ -572,7 +577,7 @@ void get_metadata(const private_handle_t *handle, const IMapper::MetadataType &m
 	else if (metadataType.name == ::pixel::graphics::kPixelMetadataTypeName) {
 		switch (static_cast<::pixel::graphics::MetadataType>(metadataType.value)) {
 			case ::pixel::graphics::MetadataType::VIDEO_HDR:
-				vec = encodePointer(get_video_hdr(handle));
+				vec = ::pixel::graphics::utils::encode(get_video_hdr(handle));
 				break;
 			case ::pixel::graphics::MetadataType::VIDEO_ROI:
 			{
@@ -580,8 +585,17 @@ void get_metadata(const private_handle_t *handle, const IMapper::MetadataType &m
 				if (roi == nullptr) {
 					err = android::BAD_VALUE;
 				} else {
-					vec = encodePointer(roi);
+					vec = ::pixel::graphics::utils::encode(roi);
 				}
+				break;
+			}
+			case ::pixel::graphics::MetadataType::PLANE_DMA_BUFS:
+			{
+				std::vector<int> plane_fds(MAX_BUFFER_FDS, -1);
+				for (int i = 0; i < get_num_planes(handle); i++) {
+					plane_fds[i] = handle->fds[handle->plane_info[i].fd_idx];
+				}
+				vec = ::pixel::graphics::utils::encode(plane_fds);
 				break;
 			}
 			default:
@@ -593,16 +607,16 @@ void get_metadata(const private_handle_t *handle, const IMapper::MetadataType &m
 		err = android::BAD_VALUE;
 	}
 
-	hidl_cb((err) ? Error::UNSUPPORTED : Error::NONE, vec);
+	outVec = std::vector<uint8_t>(vec);
+	return ((err) ? Error::UNSUPPORTED : Error::NONE);
 }
 
-Error set_metadata(const private_handle_t *handle, const IMapper::MetadataType &metadataType,
-                   const hidl_vec<uint8_t> &metadata)
+Error set_metadata(const private_handle_t *handle, const MetadataType &metadataType, const frameworks_vec<uint8_t> &metadata)
 {
-	if (android::gralloc4::isStandardMetadataType(metadataType))
+	if (isStandardMetadataType(metadataType))
 	{
 		android::status_t err = android::OK;
-		switch (android::gralloc4::getStandardMetadataTypeValue(metadataType))
+		switch (static_cast<StandardMetadataType>(metadataType.value))
 		{
 		case StandardMetadataType::DATASPACE:
 		{
@@ -695,12 +709,12 @@ Error set_metadata(const private_handle_t *handle, const IMapper::MetadataType &
 	}
 }
 
-void getFromBufferDescriptorInfo(IMapper::BufferDescriptorInfo const &description,
-                                 IMapper::MetadataType const &metadataType,
-                                 IMapper::getFromBufferDescriptorInfo_cb hidl_cb)
+#ifdef GRALLOC_MAPPER_4
+Error getFromBufferDescriptorInfo(IMapper::BufferDescriptorInfo const &description,
+                                 MetadataType const &metadataType, std::vector<uint8_t> &outVec)
 {
 	/* This will hold the metadata that is returned. */
-	hidl_vec<uint8_t> vec;
+	frameworks_vec<uint8_t> vec;
 
 	buffer_descriptor_t descriptor;
 	descriptor.width = description.width;
@@ -716,8 +730,8 @@ void getFromBufferDescriptorInfo(IMapper::BufferDescriptorInfo const &descriptio
 	if (alloc_result != 0)
 	{
 		MALI_GRALLOC_LOGV("Allocation for the given description will not succeed. error: %d", alloc_result);
-		hidl_cb(Error::BAD_VALUE, vec);
-		return;
+		outVec = vec;
+		return Error::BAD_VALUE;
 	}
 	/* Create buffer handle from the initialized descriptor without a backing store or shared metadata region.
 	 * Used to share functionality with the normal metadata get function that can only use the allocated buffer handle
@@ -727,11 +741,11 @@ void getFromBufferDescriptorInfo(IMapper::BufferDescriptorInfo const &descriptio
 	                                descriptor.hal_format, descriptor.alloc_format,
 	                                descriptor.width, descriptor.height, descriptor.pixel_stride,
 	                                descriptor.layer_count, descriptor.plane_info);
-	if (android::gralloc4::isStandardMetadataType(metadataType))
+	if (isStandardMetadataType(metadataType))
 	{
 		android::status_t err = android::OK;
 
-		switch (android::gralloc4::getStandardMetadataTypeValue(metadataType))
+		switch (static_cast<StandardMetadataType>(metadataType.value))
 		{
 		case StandardMetadataType::NAME:
 			err = android::gralloc4::encodeName(description.name, &vec);
@@ -746,7 +760,7 @@ void getFromBufferDescriptorInfo(IMapper::BufferDescriptorInfo const &descriptio
 			err = android::gralloc4::encodeLayerCount(description.layerCount, &vec);
 			break;
 		case StandardMetadataType::PIXEL_FORMAT_REQUESTED:
-			err = android::gralloc4::encodePixelFormatRequested(static_cast<PixelFormat>(description.format), &vec);
+			err = android::gralloc4::encodePixelFormatRequested(static_cast<hidl::PixelFormat>(description.format), &vec);
 			break;
 		case StandardMetadataType::USAGE:
 			err = android::gralloc4::encodeUsage(description.usage, &vec);
@@ -774,7 +788,7 @@ void getFromBufferDescriptorInfo(IMapper::BufferDescriptorInfo const &descriptio
 		{
 			/* This is set to 1 if the buffer has protected content. */
 			const int is_protected =
-			    (((partial_handle.consumer_usage | partial_handle.producer_usage) & BufferUsage::PROTECTED)) ? 1 : 0;
+			    (((partial_handle.consumer_usage | partial_handle.producer_usage) & static_cast<uint64_t>(BufferUsage::PROTECTED))) ? 1 : 0;
 			err = android::gralloc4::encodeProtectedContent(is_protected, &vec);
 			break;
 		}
@@ -876,14 +890,17 @@ void getFromBufferDescriptorInfo(IMapper::BufferDescriptorInfo const &descriptio
 		default:
 			err = android::BAD_VALUE;
 		}
-		hidl_cb((err) ? Error::UNSUPPORTED : Error::NONE, vec);
+		outVec = vec;
+		return ((err) ? Error::UNSUPPORTED : Error::NONE);
 	}
 	else
 	{
-		hidl_cb(Error::UNSUPPORTED, vec);
+		outVec = vec;
+		return Error::UNSUPPORTED;
 	}
 }
 
+#endif // GRALLOC_MAPPER_4
 } // namespace common
 } // namespace mapper
 } // namespace arm

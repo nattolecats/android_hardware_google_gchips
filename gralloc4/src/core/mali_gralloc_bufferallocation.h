@@ -100,13 +100,11 @@ int mali_gralloc_derive_format_and_size(buffer_descriptor_t * const bufDescripto
 
 int mali_gralloc_buffer_allocate(const gralloc_buffer_descriptor_t *descriptors,
                                  uint32_t numDescriptors, buffer_handle_t *pHandle, bool *shared_backend,
-                                 int fd = -1);
+                                 bool use_placeholder = false);
 
 int mali_gralloc_buffer_free(buffer_handle_t pHandle);
 
-void init_afbc(uint8_t *buf, uint64_t internal_format, const bool is_multi_plane, int w, int h);
-
-uint32_t lcm(uint32_t a, uint32_t b);
+void init_afbc(uint8_t *buf, uint64_t internal_format, const bool is_multi_plane, uint64_t w, uint64_t h);
 
 bool get_alloc_type(const uint64_t format_ext,
                     const uint32_t format_idx,

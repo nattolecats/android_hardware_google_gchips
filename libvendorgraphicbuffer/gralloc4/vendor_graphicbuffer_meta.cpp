@@ -25,9 +25,11 @@
 #include "mali_gralloc_formats.h"
 #include "hidl_common/SharedMetadata.h"
 #include "hidl_common/SharedMetadata_struct.h"
+#include "hidl_common/hidl_common.h"
 #include "exynos_format.h"
 
 #include <pixel-gralloc/metadata.h>
+#include <pixel-gralloc/mapper.h>
 
 using namespace android;
 using namespace vendor::graphics;
@@ -244,30 +246,15 @@ void* VendorGraphicBufferMeta::get_video_metadata(buffer_handle_t hnd)
 		return nullptr;
 	}
 
-	MapperMetadataType metadata_type{
-		.name = ::pixel::graphics::kPixelMetadataTypeName,
-		.value = static_cast<int64_t>(::pixel::graphics::MetadataType::VIDEO_HDR),
-	};
+	using namespace ::pixel::graphics;
+	auto out_oe = mapper::get<MetadataType::VIDEO_HDR>(handle);
 
-	Error error = Error::NONE;
-	void* output = nullptr;
-
-	get_mapper()->get(handle, metadata_type,
-	                  [&](const auto& tmpError, const android::hardware::hidl_vec<uint8_t>& tmpVec) {
-	                  	error = tmpError;
-	                  	if (error != Error::NONE) {
-	                  		return;
-	                  	}
-	                  	output = decodePointer(tmpVec);
-	                  });
-
-
-	if (error != Error::NONE) {
+	if (!out_oe.has_value()) {
 		ALOGE("Failed to get video HDR metadata");
 		return nullptr;
 	}
 
-	return output;
+	return out_oe.value();
 }
 
 void* VendorGraphicBufferMeta::get_video_metadata_roiinfo(buffer_handle_t hnd)
@@ -277,30 +264,15 @@ void* VendorGraphicBufferMeta::get_video_metadata_roiinfo(buffer_handle_t hnd)
 		return nullptr;
 	}
 
-	MapperMetadataType metadata_type{
-		.name = ::pixel::graphics::kPixelMetadataTypeName,
-		.value = static_cast<int64_t>(::pixel::graphics::MetadataType::VIDEO_ROI),
-	};
+	using namespace ::pixel::graphics;
+	auto out_oe = mapper::get<MetadataType::VIDEO_ROI>(handle);
 
-	Error error = Error::NONE;
-	void* output = nullptr;
-
-	get_mapper()->get(handle, metadata_type,
-	                  [&](const auto& tmpError, const android::hardware::hidl_vec<uint8_t>& tmpVec) {
-	                  	error = tmpError;
-	                  	if (error != Error::NONE) {
-	                  		return;
-	                  	}
-	                  	output = decodePointer(tmpVec);
-	                  });
-
-
-	if (error != Error::NONE) {
-		ALOGE("Failed to get video HDR metadata");
+	if (!out_oe.has_value()) {
+		ALOGE("Failed to get video ROI metadata");
 		return nullptr;
 	}
 
-	return output;
+	return out_oe.value();
 }
 
 uint32_t VendorGraphicBufferMeta::get_format_fourcc(buffer_handle_t hnd) {
