@@ -7,8 +7,8 @@
 #include <aidl/android/hardware/graphics/common/PixelFormat.h>
 #include <aidl/android/hardware/graphics/common/StandardMetadataType.h>
 
-using aidl::android::hardware::graphics::common::BufferUsage;
-using aidl::android::hardware::graphics::common::PixelFormat;
+//using aidl::android::hardware::graphics::common::BufferUsage;
+//using aidl::android::hardware::graphics::common::PixelFormat;
 using aidl::android::hardware::graphics::common::StandardMetadataType;
 using aidl::android::hardware::graphics::common::ExtendableType;
 using aidl::android::hardware::graphics::common::PlaneLayout;

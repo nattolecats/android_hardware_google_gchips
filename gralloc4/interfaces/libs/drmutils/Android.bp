@@ -21,7 +21,6 @@ package {
 
 cc_library_static {
     name: "libgralloc_drmutils",
-    defaults: ["android.hardware.graphics.common-ndk_shared"],
     cflags: [
         "-Wall",
         "-Werror",
@@ -34,6 +33,7 @@ cc_library_static {
         "liblog",
         "libdrm",
         "libcutils",
+        "android.hardware.graphics.common-V4-ndk",
     ],
     header_libs: [
         "libgralloc_headers",

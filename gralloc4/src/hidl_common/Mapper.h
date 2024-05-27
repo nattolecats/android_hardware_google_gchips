@@ -23,9 +23,7 @@
 #include "mali_gralloc_log.h"
 #include "core/mali_gralloc_bufferdescriptor.h"
 
-#include "MapperMetadata.h"
-#include "hidl_common.h"
-#include "mali_gralloc_error.h"
+#include "4.x/gralloc_mapper_hidl_header.h"
 
 namespace arm
 {
@@ -34,42 +32,24 @@ namespace mapper
 namespace common
 {
 
-
-using aidl::android::hardware::graphics::common::Rect;
-
+using android::hardware::hidl_handle;
+using android::hardware::hidl_vec;
 using android::hardware::Void;
-
-class GrallocRect {
-	public:
-	int left;
-	int top;
-	int right;
-	int bottom;
-	GrallocRect(Rect rect) {
-		left = rect.left;
-		top = rect.top;
-		right = rect.right;
-		bottom = rect.bottom;
-	}
-#ifdef GRALLOC_MAPPER_4
-	GrallocRect(IMapper::Rect rect) {
-		left = rect.left;
-		top = rect.top;
-		right = rect.left + rect.width;
-		bottom = rect.top + rect.height;
-	}
-#endif
-};
 
 /**
  * Imports a raw buffer handle to create an imported buffer handle for use with
  * the rest of the mapper or with other in-process libraries.
  *
- * @param bufferHandle [in] Buffer handle to import.
- * @param outBuffer [in] imported Buffer
+ * @param rawHandle [in] Raw buffer handle to import.
+ * @param hidl_cb   [in] HIDL Callback function to export output information
+ * @param hidl_cb   [in]  HIDL callback function generating -
+ *                  error  : NONE upon success. Otherwise,
+ *                           BAD_BUFFER for an invalid buffer
+ *                           NO_RESOURCES when the raw handle cannot be imported
+ *                           BAD_VALUE when any of the specified attributes are invalid
+ *                  buffer : Imported buffer handle
  */
-Error importBuffer(const native_handle_t *inBuffer, buffer_handle_t *outBuffer);
-
+void importBuffer(const hidl_handle &rawHandle, IMapper::importBuffer_cb hidl_cb);
 
 /**
  * Frees a buffer handle and releases all the resources associated with it
@@ -79,10 +59,7 @@ Error importBuffer(const native_handle_t *inBuffer, buffer_handle_t *outBuffer);
  * @return Error::BAD_BUFFER for an invalid buffer / when failed to free the buffer
  *         Error::NONE on successful free
  */
-Error freeBuffer(buffer_handle_t buffer);
-
-buffer_handle_t getBuffer(void *buffer);
-native_handle_t* removeBuffer(void **buffer);
+Error freeBuffer(void *buffer);
 
 /**
  * Locks the given buffer for the specified CPU usage.
@@ -99,7 +76,8 @@ native_handle_t* removeBuffer(void **buffer);
  *                          bytesPerPixel:  v3.X Only. Number of bytes per pixel in the buffer
  *                          bytesPerStride: v3.X Only. Bytes per stride of the buffer
  */
-Error lock(buffer_handle_t buffer, uint64_t cpuUsage, const GrallocRect &accessRegion, int acquireFence, void **outData);
+void lock(void *buffer, uint64_t cpuUsage, const IMapper::Rect &accessRegion, const hidl_handle &acquireFence,
+          IMapper::lock_cb hidl_cb);
 
 /**
  * Unlocks a buffer to indicate all CPU accesses to the buffer have completed
@@ -110,7 +88,7 @@ Error lock(buffer_handle_t buffer, uint64_t cpuUsage, const GrallocRect &accessR
  *                                        BAD_BUFFER for an invalid buffer
  *                          releaseFence: Referrs to a sync fence object
  */
-Error unlock(const native_handle_t *buffer, int *releaseFence);
+void unlock(void *buffer, IMapper::unlock_cb hidl_cb);
 
 /**
  * Validates the buffer against specified descriptor attributes
@@ -124,9 +102,7 @@ Error unlock(const native_handle_t *buffer, int *releaseFence);
  *         Error::BAD_BUFFER upon bad buffer input
  *         Error::BAD_VALUE when any of the specified attributes are invalid
  */
-#ifdef GRALLOC_MAPPER_4
 Error validateBufferSize(void *buffer, const IMapper::BufferDescriptorInfo &descriptorInfo, uint32_t stride);
-#endif
 
 /**
  * Get the transport size of a buffer
@@ -138,7 +114,7 @@ Error validateBufferSize(void *buffer, const IMapper::BufferDescriptorInfo &desc
  *                          numFds:  Number of file descriptors needed for transport
  *                          numInts: Number of integers needed for transport
  */
-Error getTransportSize(buffer_handle_t bufferHandle, uint32_t *outNumFds, uint32_t *outNumInts);
+void getTransportSize(void *buffer, IMapper::getTransportSize_cb hidl_cb);
 
 /**
  * Test whether the given BufferDescriptorInfo is allocatable.
@@ -149,9 +125,8 @@ Error getTransportSize(buffer_handle_t bufferHandle, uint32_t *outNumFds, uint32
  *                                     BAD_VALUE, Otherwise,
  *                          supported: Whether the description can be allocated
  */
-#ifdef GRALLOC_MAPPER_4
-bool isSupported(const IMapper::BufferDescriptorInfo &description);
-#endif
+void isSupported(const IMapper::BufferDescriptorInfo &description, IMapper::isSupported_cb hidl_cb);
+
 /* TODO: implement this feature for exynos */
 /**
  * Flushes the CPU caches of a mapped buffer.
@@ -162,7 +137,7 @@ bool isSupported(const IMapper::BufferDescriptorInfo &description);
  *                                    has not been locked.
  *                      releaseFence: Empty fence signaling completion as all work is completed within the call.
  */
-Error flushLockedBuffer(buffer_handle_t buffer);
+void flushLockedBuffer(void *buffer, IMapper::flushLockedBuffer_cb hidl_cb);
 
 /* TODO: implement this feature for exynos */
 /**
@@ -173,7 +148,7 @@ Error flushLockedBuffer(buffer_handle_t buffer);
  * @return Error::NONE upon success.
  *         Error::BAD_BUFFER for an invalid buffer or a buffer that has not been locked.
  */
-Error rereadLockedBuffer(buffer_handle_t handle);
+Error rereadLockedBuffer(void *buffer);
 
 /**
  * Retrieves a Buffer's metadata value.
@@ -186,7 +161,7 @@ Error rereadLockedBuffer(buffer_handle_t handle);
  *                                 UNSUPPORTED on error when reading or unsupported metadata type.
  *                          metadata: Vector of bytes representing the metadata value.
  */
-Error get(buffer_handle_t buffer, const MetadataType &metadataType, std::vector<uint8_t> &vec);
+void get(void *buffer, const IMapper::MetadataType &metadataType, IMapper::get_cb hidl_cb);
 
 /**
  * Sets a Buffer's metadata value.
@@ -199,7 +174,7 @@ Error get(buffer_handle_t buffer, const MetadataType &metadataType, std::vector<
  *         Error::BAD_BUFFER on invalid buffer argument.
  *         Error::UNSUPPORTED on error when writing or unsupported metadata type.
  */
-Error set(buffer_handle_t buffer, const MetadataType &metadataType, const frameworks_vec<uint8_t> &metadata);
+Error set(void *buffer, const IMapper::MetadataType &metadataType, const hidl_vec<uint8_t> &metadata);
 
 /**
  * Lists all the MetadataTypes supported by IMapper as well as a description
@@ -214,7 +189,7 @@ Error set(buffer_handle_t buffer, const MetadataType &metadataType, const framew
  *                     descriptions: vector of MetadataTypeDescriptions that represent the
  *                                   MetadataTypes supported by the device.
  */
-std::vector<MetadataTypeDescription> listSupportedMetadataTypes();
+void listSupportedMetadataTypes(IMapper::listSupportedMetadataTypes_cb hidl_cb);
 
 /**
  * Dumps a buffer's metadata.
@@ -228,7 +203,7 @@ std::vector<MetadataTypeDescription> listSupportedMetadataTypes();
  *                             resources.
  *                     bufferDump: Struct representing the metadata being dumped
  */
-Error dumpBuffer(buffer_handle_t buffer, BufferDump &out);
+void dumpBuffer(void *buffer, IMapper::dumpBuffer_cb hidl_cb);
 
 /**
  * Dumps the metadata for all the buffers in the current process.
@@ -240,7 +215,7 @@ Error dumpBuffer(buffer_handle_t buffer, BufferDump &out);
  *                             resources.
  *                     bufferDumps: Vector of structs representing the buffers being dumped
  */
-std::vector<BufferDump> dumpBuffers();
+void dumpBuffers(IMapper::dumpBuffers_cb hidl_cb);
 
 /**
  * Returns the region of shared memory associated with the buffer that is
@@ -268,7 +243,7 @@ std::vector<BufferDump> dumpBuffers();
  *                     reservedSize: the size of the reservedRegion that was requested
  *                                  in the BufferDescriptorInfo.
  */
-Error getReservedRegion(buffer_handle_t buffer, void **outReservedRegion, uint64_t &outReservedSize);
+void getReservedRegion(void *buffer, IMapper::getReservedRegion_cb _hidl_cb);
 
 } // namespace common
 } // namespace mapper
